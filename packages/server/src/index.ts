@@ -1,6 +1,7 @@
 // Server bootstrap: Express (health + accounts REST + static web build) and
 // Socket.IO (the realtime game) on a single HTTP server — one origin, one URL.
 
+import './loadenv'; // must run before modules that read process.env (firebase)
 import { createServer } from 'node:http';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
