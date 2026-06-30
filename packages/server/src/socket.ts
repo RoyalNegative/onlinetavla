@@ -65,6 +65,7 @@ function broadcastRoom(io: Server, room: Room): void {
     }
   }
   for (const [sid, info] of room.spectators) {
+    if (room.seats.some((s) => s.socketId === sid)) continue; // safety: seat wins
     io.to(sid).emit('room:update', {
       you: { seat: null, name: info.name, uid: null },
       view: tavlaModule.viewFor(room.state, null),
@@ -84,8 +85,24 @@ function systemMessage(text: string): ChatMessage {
   };
 }
 
+const CHAT_WINDOW_MS = 5000;
+const CHAT_MAX_IN_WINDOW = 5;
+
 export function attachSockets(io: Server, rooms: RoomManager): void {
   const passTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const chatTimes = new Map<string, number[]>();
+
+  function allowChat(socketId: string): boolean {
+    const now = Date.now();
+    const recent = (chatTimes.get(socketId) ?? []).filter((t) => now - t < CHAT_WINDOW_MS);
+    if (recent.length >= CHAT_MAX_IN_WINDOW) {
+      chatTimes.set(socketId, recent);
+      return false;
+    }
+    recent.push(now);
+    chatTimes.set(socketId, recent);
+    return true;
+  }
 
   function maybeAutoPass(room: Room): void {
     if (room.state.matchWinner) return;
@@ -208,6 +225,7 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
       if (!room) return cb?.({ ok: false, error: 'no_room' });
       const text = typeof payload?.text === 'string' ? payload.text.trim().slice(0, 280) : '';
       if (!text) return cb?.({ ok: false, error: 'empty' });
+      if (!allowChat(socket.id)) return cb?.({ ok: false, error: 'rate_limited' });
       const seat = rooms.seatForSocket(room, socket.id);
       const from = seat?.name ?? room.spectators.get(socket.id)?.name ?? 'Oyuncu';
       rooms.addChat(room, {
@@ -223,6 +241,7 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
     });
 
     socket.on('disconnect', () => {
+      chatTimes.delete(socket.id);
       const room = rooms.detach(socket.id);
       if (room) broadcastRoom(io, room);
     });

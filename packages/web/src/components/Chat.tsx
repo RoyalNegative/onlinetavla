@@ -29,7 +29,11 @@ export function Chat({
 
   return (
     <div className="card flex min-h-0 flex-1 flex-col p-3">
-      <div ref={scrollRef} className="scroll-thin mb-2 flex-1 space-y-1.5 overflow-y-auto pr-1" style={{ minHeight: 120 }}>
+      <div
+        ref={scrollRef}
+        className="scroll-thin mb-2 flex-1 space-y-1.5 overflow-y-auto pr-1"
+        style={{ minHeight: 120, maxHeight: 320 }}
+      >
         {messages.length === 0 && <p className="px-1 text-xs text-white/30">Sohbet burada…</p>}
         {messages.map((m) =>
           m.kind === 'system' ? (

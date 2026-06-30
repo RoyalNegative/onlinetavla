@@ -61,11 +61,9 @@ export const useStore = create<Store>((set, get) => ({
     if (get().initialized) return;
     set({ initialized: true });
 
-    socket.on('connect', () => {
-      set({ connected: true });
-      const rid = roomIdFromPath(window.location.pathname);
-      if (rid) void get().joinRoom(rid);
-    });
+    // Note: re-joining on (re)connect is driven by the Room component's effect,
+    // which depends on `connected`. Doing it here too caused double-join races.
+    socket.on('connect', () => set({ connected: true }));
     socket.on('disconnect', () => set({ connected: false }));
     socket.on('room:update', (u: RoomUpdate) => set({ update: u }));
 
@@ -118,7 +116,9 @@ export const useStore = create<Store>((set, get) => ({
   },
 
   sendChat(text, kind = 'chat') {
-    void emit('chat:send', { text, kind });
+    void emit('chat:send', { text, kind }).then((ack) => {
+      if (!ack.ok && ack.error === 'rate_limited') set({ toast: 'Biraz yavaş ol 🙂' });
+    });
   },
 
   voteRematch() {

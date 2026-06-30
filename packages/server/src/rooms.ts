@@ -91,27 +91,29 @@ export class RoomManager {
     this.socketRoom.set(info.socketId, room.id);
     room.lastActive = Date.now();
 
+    const seatThisSocket = (seat: Seat): JoinResult => {
+      seat.socketId = info.socketId;
+      seat.connected = true;
+      if (info.name) seat.name = info.name;
+      if (info.uid) seat.uid = info.uid;
+      if (info.avatar) seat.avatar = info.avatar;
+      room.spectators.delete(info.socketId); // a seat is never also a spectator
+      return { seat };
+    };
+
+    // 0) this socket already holds a seat -> idempotent (guards double-join races)
+    const own = room.seats.find((s) => s.socketId === info.socketId);
+    if (own) return seatThisSocket(own);
+
     // 1) reconnect by explicit token
     if (info.token) {
       const seat = room.seats.find((s) => s.token === info.token);
-      if (seat) {
-        seat.socketId = info.socketId;
-        seat.connected = true;
-        if (info.name) seat.name = info.name;
-        if (info.uid) seat.uid = info.uid;
-        if (info.avatar) seat.avatar = info.avatar;
-        return { seat };
-      }
+      if (seat) return seatThisSocket(seat);
     }
     // 2) reconnect by authenticated uid taking over its disconnected seat
     if (info.uid) {
       const seat = room.seats.find((s) => s.uid === info.uid && !s.connected);
-      if (seat) {
-        seat.socketId = info.socketId;
-        seat.connected = true;
-        if (info.name) seat.name = info.name;
-        return { seat };
-      }
+      if (seat) return seatThisSocket(seat);
     }
     // 3) take a free seat
     if (room.seats.length < 2) {
@@ -126,6 +128,7 @@ export class RoomManager {
         rematchVote: false,
       };
       room.seats.push(seat);
+      room.spectators.delete(info.socketId);
       return { seat };
     }
     // 4) spectate
