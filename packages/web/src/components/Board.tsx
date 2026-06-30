@@ -94,6 +94,18 @@ export function Board({ view, interactive, onAction }: Props) {
     return set;
   }, [legalMoves, selected]);
 
+  // Opponent blots you can hit this turn — surfaced so captures are obvious.
+  const hittable = useMemo(() => {
+    const set = new Set<number>();
+    for (const m of legalMoves) {
+      if (typeof m.to === 'number') {
+        const o = colorAt(game.points, m.to);
+        if (o && o !== game.turn && Math.abs(game.points[m.to]) === 1) set.add(m.to);
+      }
+    }
+    return set;
+  }, [legalMoves, game.points, game.turn]);
+
   function play(move: DieMove) {
     onAction({ type: 'move', move });
     setSelected(null);
@@ -154,7 +166,7 @@ export function Board({ view, interactive, onAction }: Props) {
             <g key={idx}>
               <polygon points={`${x - COL_W / 2 + 4},${base} ${x + COL_W / 2 - 4},${base} ${x},${apexY}`} fill={fill} opacity={0.92} />
               {isTarget && (
-                <circle cx={x} cy={row === 'top' ? base + 26 : base - 26} r="9" fill="#f5b14c">
+                <circle cx={x} cy={row === 'top' ? base + 26 : base - 26} r="9" fill={hittable.has(idx) ? '#f87171' : '#f5b14c'}>
                   <animate attributeName="opacity" values="0.4;1;0.4" dur="1.1s" repeatCount="indefinite" />
                 </circle>
               )}
@@ -176,6 +188,11 @@ export function Board({ view, interactive, onAction }: Props) {
           const isSel = selected === idx;
           return (
             <g key={`c${idx}`}>
+              {hittable.has(idx) && (
+                <circle cx={x} cy={checkerY(row, 0)} r={CHK_R + 4} fill="none" stroke="#f87171" strokeWidth="3">
+                  <animate attributeName="opacity" values="0.35;1;0.35" dur="0.9s" repeatCount="indefinite" />
+                </circle>
+              )}
               {Array.from({ length: shown }, (_, i) => (
                 <circle
                   key={i}

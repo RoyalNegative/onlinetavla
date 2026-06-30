@@ -1,6 +1,6 @@
 // Chat + quick emoji bar.
 
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import type { ChatMessageDTO } from '../protocol';
 
 const EMOJIS = ['👍', '😂', '🎲', '🔥', '😱', '🤝', '😎', '😭'];
@@ -15,8 +15,11 @@ export function Chat({
   const [text, setText] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+  // Pin to the bottom whenever messages change (runs before paint, so the new
+  // message's height is already laid out).
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [messages.length]);
 
   function submit(e: FormEvent) {
