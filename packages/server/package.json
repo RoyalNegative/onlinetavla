@@ -13,12 +13,12 @@
     "express": "^4.21.2",
     "firebase-admin": "^13.0.2",
     "nanoid": "^5.0.9",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "tsx": "^4.19.2"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.2",
-    "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }
 }

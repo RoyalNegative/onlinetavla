@@ -43,6 +43,15 @@ Tek bir Node servisi yeterli. **Render / Railway / Fly** gibi ücretsiz katmanla
 - Start command: `npm start`
 - Port: `PORT` env'inden okunur.
 
+> ⚠️ **Vercel / Netlify (serverless) bu sunucuyu barındıramaz.** Oyun sunucusu
+> kalıcı bir WebSocket (Socket.IO) servisidir; serverless fonksiyonlar kısa
+> ömürlü ve durumsuz olduğundan çöker. Kalıcı Node süreci olan bir platform
+> kullan.
+
+**Render ile tek tık:** repoda `render.yaml` var. Render → **New + → Blueprint**
+→ bu repoyu seç → deploy. (Ücretsiz katman bir süre sonra uykuya geçer; ilk
+istekte ~50 sn soğuk başlatma olur.)
+
 ## Firebase (opsiyonel — hesaplar için)
 
 Hesap özellikleri olmadan da her şey çalışır. Açmak istersen:

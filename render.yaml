@@ -1,0 +1,23 @@
+# Render Blueprint — one-click deploy of the whole app (server + built client)
+# as a single web service. Render → New + → Blueprint → pick this repo.
+#
+# Note: Vercel/Netlify serverless CANNOT host the realtime websocket game
+# server; use a platform with a persistent Node process (Render/Railway/Fly).
+services:
+  - type: web
+    name: onlinetavla
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      # Ensure dev tools (vite, tailwind) are installed during the build.
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
+      - key: NODE_VERSION
+        value: "22.12.0"
+      # Optional — set these in the Render dashboard to enable accounts:
+      # - key: FIREBASE_SERVICE_ACCOUNT
+      #   sync: false
