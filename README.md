@@ -6,6 +6,8 @@ sıralama kazanırsın; istemezsen takma adla oynarsın. Altyapı, ileride başk
 oyunların (okey, dama, satranç…) eklenebileceği şekilde **oyundan bağımsız**
 kuruldu.
 
+🌐 **Canlı:** <https://onlinetavla.onrender.com>
+
 ## Özellikler
 
 - **Gerçek-zamanlı 2 kişilik tavla** — zarları **sunucu** atar, her hamleyi
@@ -17,6 +19,26 @@ kuruldu.
   yerine dönersin), **izleyici** desteği.
 - **Opsiyonel hesap** (Firebase): kalıcı profil, kazanma/kaybetme, kazanma yüzdesi,
   seri, **Elo sıralaması** ve **maç geçmişi** — hepsi sunucuda tutulur, sahtelenemez.
+
+## Teknolojiler & barındırma
+
+| Katman | Ne kullandık | Neden |
+| --- | --- | --- |
+| Dil | **TypeScript** (uçtan uca) | Tek dil; tipler ve oyun kuralları paylaşılır |
+| Monorepo | **npm workspaces** | engine / server / web tek repoda |
+| Oyun motoru | Saf TS (bağımlılıksız) + **Vitest** | Test edilebilir, otoriter kurallar |
+| Sunucu | **Node + Express + Socket.IO** | Gerçek-zamanlı; zarı atan/hamleyi doğrulayan otorite |
+| İstemci | **React + Vite + Tailwind + Zustand** | SVG tahta, zar animasyonu, hızlı build |
+| Hesap (opsiyonel) | **Firebase** Auth + Firestore (Admin SDK) | İsteğe bağlı giriş; sahtelenemez istatistik/sıralama |
+| Barındırma | **Render** — ücretsiz, kalıcı Node servisi (`render.yaml`) | WebSocket + bellekte oda durumu gerektirir |
+
+**Neden Render, Vercel değil?** Oyun sunucusu sürekli açık **WebSocket** bağlantıları
+ve **bellekte paylaşılan oda durumu** tutar; bu yüzden **hep-açık (kalıcı) bir Node
+süreci** gerekir. Vercel/Netlify gibi serverless platformlar her isteği kısa ömürlü,
+durumsuz bir fonksiyonla karşıladığından bu mimariyi barındıramaz (fonksiyon çöker).
+Render/Railway/Fly ise kalıcı bir süreç çalıştırır — gerçek-zamanlı çok-oyunculu için
+gereken budur. Tek servis hem oyunu (websocket) hem de derlenmiş arayüzü servis eder
+→ tek URL.
 
 ## Hızlı başlangıç (geliştirme)
 
