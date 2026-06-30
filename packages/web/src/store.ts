@@ -6,6 +6,7 @@ import type { Action } from '@tavla/engine';
 import { fetchAccountsEnabled } from './lib/api';
 import { currentIdToken, watchAuth } from './lib/firebase';
 import { emit, socket } from './lib/socket';
+import { setSoundEnabled, soundEnabled } from './lib/sound';
 import type { RoomUpdate } from './protocol';
 import { navigate, roomIdFromPath } from './router';
 
@@ -23,8 +24,10 @@ interface Store {
   update: RoomUpdate | null;
   toast: string | null;
   initialized: boolean;
+  soundOn: boolean;
 
   setNickname: (n: string) => void;
+  toggleSound: () => void;
   displayName: () => string;
   init: () => void;
   createRoom: (opts: { mode: 'classic' | 'backgammon'; targetPoints: number }) => Promise<void>;
@@ -45,11 +48,18 @@ export const useStore = create<Store>((set, get) => ({
   update: null,
   toast: null,
   initialized: false,
+  soundOn: soundEnabled(),
 
   setNickname(n) {
     const clean = n.slice(0, 20);
     localStorage.setItem('tavla.nickname', clean);
     set({ nickname: clean });
+  },
+
+  toggleSound() {
+    const next = !get().soundOn;
+    setSoundEnabled(next);
+    set({ soundOn: next });
   },
 
   displayName() {

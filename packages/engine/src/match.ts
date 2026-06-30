@@ -46,6 +46,7 @@ function cloneGame(g: GameState): GameState {
       ? { points: g.turnStart.points.slice(), bar: { ...g.turnStart.bar }, off: { ...g.turnStart.off } }
       : null,
     result: g.result ? { ...g.result } : null,
+    lastMove: g.lastMove ? { ...g.lastMove } : null,
   };
 }
 

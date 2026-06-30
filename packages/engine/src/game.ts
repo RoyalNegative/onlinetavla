@@ -38,6 +38,9 @@ export function createGame(mode: GameMode): GameState {
     cube: mode === 'backgammon' ? { value: 1, owner: null } : null,
     doubleOfferedBy: null,
     result: null,
+    lastMove: null,
+    lastMoveBy: null,
+    moveSeq: 0,
   };
 }
 
@@ -140,6 +143,9 @@ export function playMove(state: GameState, player: Player, move: DieMove): void 
   state.off = next.off;
   state.remaining = removeOne(state.remaining, move.die);
   state.movesThisTurn.push(move);
+  state.lastMove = move;
+  state.lastMoveBy = player;
+  state.moveSeq += 1;
 
   if (state.off[player] === 15) {
     finishGame(state, player, 'borneOff');

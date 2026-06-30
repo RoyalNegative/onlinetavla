@@ -66,6 +66,10 @@ export interface GameState extends Position {
   cube: Cube | null; // null in classic mode
   doubleOfferedBy: Player | null;
   result: GameResult | null;
+  /** Most recently applied move (kept after the turn ends, for animation). */
+  lastMove: DieMove | null;
+  lastMoveBy: Player | null;
+  moveSeq: number; // increments on every applied move
 }
 
 export type GameMode = 'classic' | 'backgammon';

@@ -6,6 +6,7 @@ import { Header } from '../components/Header';
 import { PlayerPanel } from '../components/PlayerPanel';
 import { navigate } from '../router';
 import { useStore } from '../store';
+import { useGameEffects } from '../useGameEffects';
 
 export function Room({ roomId }: { roomId: string }) {
   const update = useStore((s) => s.update);
@@ -19,7 +20,10 @@ export function Room({ roomId }: { roomId: string }) {
     if (connected) void joinRoom(roomId);
   }, [roomId, connected, joinRoom]);
 
+  useGameEffects(update);
+
   const inThisRoom = update?.room.roomId === roomId;
+  const yourTurn = !!update?.view.yourTurn;
 
   return (
     <div className="mx-auto flex min-h-full max-w-6xl flex-col">
@@ -41,7 +45,7 @@ export function Room({ roomId }: { roomId: string }) {
         <div className="grid flex-1 place-items-center text-white/50">Odaya bağlanılıyor…</div>
       ) : (
         <main className="grid flex-1 gap-4 px-3 pb-6 sm:px-6 lg:grid-cols-[1fr_340px]">
-          <div className="relative">
+          <div className={`relative rounded-2xl transition-shadow ${yourTurn ? 'ring-2 ring-amber-glow/70 shadow-[0_0_30px_rgba(245,177,76,0.25)]' : ''}`}>
             <Board
               view={update.view}
               interactive={
