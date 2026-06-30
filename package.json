@@ -1,0 +1,28 @@
+{
+  "name": "onlinetavla",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Basit, şık, ücretsiz online tavla — URL ile oda kur, arkadaşınla oyna. İleride çok-oyunlu platforma hazır.",
+  "workspaces": [
+    "packages/engine",
+    "packages/server",
+    "packages/web"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,web -c blue,green \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:server": "npm -w @tavla/server run dev",
+    "dev:web": "npm -w @tavla/web run dev",
+    "build": "npm -w @tavla/web run build",
+    "start": "npm -w @tavla/server run start",
+    "test": "npm -w @tavla/engine run test",
+    "typecheck": "npm -w @tavla/engine run typecheck && npm -w @tavla/server run typecheck && npm -w @tavla/web run typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

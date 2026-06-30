@@ -1,0 +1,91 @@
+# 🎲 Tavla — online, basit, ücretsiz
+
+Arkadaşınla URL üzerinden oynanan online tavla. Oda kur, linki paylaş, hemen başla.
+Üyelik **opsiyonel** — istersen Google ile giriş yapıp istatistik, Elo puanı ve
+sıralama kazanırsın; istemezsen takma adla oynarsın. Altyapı, ileride başka
+oyunların (okey, dama, satranç…) eklenebileceği şekilde **oyundan bağımsız**
+kuruldu.
+
+## Özellikler
+
+- **Gerçek-zamanlı 2 kişilik tavla** — zarları **sunucu** atar, her hamleyi
+  sunucu doğrular → hile yok.
+- **URL ile oda** — `…/r/<kod>` linkini paylaş, arkadaşın açınca oyun başlar.
+- **Klasik veya çift zarlı (doubling cube)** — oda kurulurken seçilir.
+- **Maç modu** — ilk N sayıya kadar; mars (×2) ve backgammon (×3) puanlanır.
+- **Sohbet + emoji**, **rövanş**, **yeniden bağlanma** (sayfayı yenilesen
+  yerine dönersin), **izleyici** desteği.
+- **Opsiyonel hesap** (Firebase): kalıcı profil, kazanma/kaybetme, kazanma yüzdesi,
+  seri, **Elo sıralaması** ve **maç geçmişi** — hepsi sunucuda tutulur, sahtelenemez.
+
+## Hızlı başlangıç (geliştirme)
+
+```bash
+npm install
+npm run dev
+```
+
+- Web: <http://localhost:5173>
+- Sunucu: <http://localhost:8787> (web, API ve websocket'i Vite proxy'ler)
+
+İki sekme aç, birinde oda kur, çıkan linki diğer sekmede aç — kendi kendine oyna.
+
+## Üretim (tek servis, tek URL)
+
+```bash
+npm run build      # web istemcisini packages/web/dist'e derler
+npm start          # sunucu hem oyunu hem statik istemciyi servis eder (:8787)
+```
+
+Tek bir Node servisi yeterli. **Render / Railway / Fly** gibi ücretsiz katmanlarda:
+
+- Build command: `npm install && npm run build`
+- Start command: `npm start`
+- Port: `PORT` env'inden okunur.
+
+## Firebase (opsiyonel — hesaplar için)
+
+Hesap özellikleri olmadan da her şey çalışır. Açmak istersen:
+
+1. Firebase Console'da bir proje + **Authentication → Google** sağlayıcısını aç,
+   **Firestore**'u (production mode) oluştur.
+2. **Web istemci:** `packages/web/.env.example` → `.env` yap, web app config
+   anahtarlarını gir.
+3. **Sunucu:** `packages/server/.env.example` → `.env`. Servis hesabı JSON'unu
+   `FIREBASE_SERVICE_ACCOUNT` olarak yapıştır (veya
+   `GOOGLE_APPLICATION_CREDENTIALS` ile dosya yolu ver).
+
+Sunucu, maç bitince giriş yapmış oyuncuların sonucunu Firestore'a yazar
+(`users/{uid}` istatistikler + Elo, `users/{uid}/matches` geçmiş). Tüm Firestore
+erişimi sunucu (Admin SDK) üzerinden olduğu için istemci-tarafı güvenlik kuralı
+yazmana gerek yok.
+
+## Proje yapısı
+
+```
+packages/
+  engine/   Saf TS tavla motoru — kurallar, hamle üretimi, kazanma, cube, maç skoru.
+            Bağımlılığı yok, %100 birim-testli. Platform soyutlaması: GameModule.
+  server/   Express + Socket.IO. Oyundan bağımsız oda yöneticisi, otoriter durum,
+            sohbet, rövanş, yeniden bağlanma + opsiyonel Firebase hesap katmanı.
+  web/      React + Vite + Tailwind + Zustand. SVG tahta, zar animasyonu,
+            tıkla-oyna, sohbet, sıralama/profil.
+```
+
+## Test
+
+```bash
+npm test          # engine birim testleri (Vitest)
+npm run typecheck # üç paketi de tsc ile denetler
+```
+
+## İleride yeni oyun eklemek
+
+`packages/engine/src/module.ts` içindeki `GameModule` arayüzünü uygula
+(`createInitialState`, `applyAction`, `isOver`, `viewFor`) ve sunucuya kaydet.
+Oda yöneticisi, sohbet, yeniden bağlanma ve hesap katmanı **hiç değişmeden**
+yeni oyunla çalışır.
+
+---
+
+MIT-benzeri kişisel proje. İyi oyunlar! 🎲
