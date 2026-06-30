@@ -18,10 +18,13 @@ export function Room({ roomId }: { roomId: string }) {
   const sendAction = useStore((s) => s.sendAction);
   const sendChat = useStore((s) => s.sendChat);
   const voteRematch = useStore((s) => s.voteRematch);
+  const nickname = useStore((s) => s.nickname);
+  const setNickname = useStore((s) => s.setNickname);
+  const hasName = nickname.trim().length > 0;
 
   useEffect(() => {
-    if (connected) void joinRoom(roomId);
-  }, [roomId, connected, joinRoom]);
+    if (connected && hasName) void joinRoom(roomId);
+  }, [roomId, connected, hasName, joinRoom]);
 
   useGameEffects(update);
 
@@ -48,7 +51,9 @@ export function Room({ roomId }: { roomId: string }) {
         }
       />
 
-      {!inThisRoom ? (
+      {!hasName ? (
+        <NameGate onSubmit={setNickname} />
+      ) : !inThisRoom ? (
         <div className="grid flex-1 place-items-center text-white/50">Odaya bağlanılıyor…</div>
       ) : (
         <main className="grid flex-1 items-start gap-3 px-2 pb-6 sm:gap-4 sm:px-6 md:grid-cols-[1fr_300px] lg:grid-cols-[1fr_340px]">
@@ -88,6 +93,32 @@ export function Room({ roomId }: { roomId: string }) {
           </aside>
         </main>
       )}
+    </div>
+  );
+}
+
+function NameGate({ onSubmit }: { onSubmit: (n: string) => void }) {
+  const [name, setName] = useState('');
+  return (
+    <div className="grid flex-1 place-items-center px-4">
+      <div className="card w-full max-w-sm space-y-3 p-6 text-center">
+        <div className="text-3xl">👋</div>
+        <p className="text-lg font-bold">Oyuna katıl</p>
+        <p className="text-sm text-white/50">Bir takma ad gir, hemen başlayalım.</p>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const v = name.trim();
+            if (v) onSubmit(v);
+          }}
+          className="space-y-3"
+        >
+          <input autoFocus className="input text-center" value={name} onChange={(e) => setName(e.target.value)} placeholder="ör. Kaan" maxLength={20} />
+          <button type="submit" className="btn-primary w-full" disabled={!name.trim()}>
+            Katıl
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

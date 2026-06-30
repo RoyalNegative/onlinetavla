@@ -11,6 +11,10 @@ export function Home() {
   const createRoom = useStore((s) => s.createRoom);
   const accountsEnabled = useStore((s) => s.accountsEnabled);
   const authUser = useStore((s) => s.authUser);
+  const matchmaking = useStore((s) => s.matchmaking);
+  const findMatch = useStore((s) => s.findMatch);
+  const cancelMatch = useStore((s) => s.cancelMatch);
+  const hasName = nickname.trim().length > 0;
 
   const [game, setGame] = useState<'tavla' | 'dama'>('tavla');
   const [mode, setMode] = useState<'classic' | 'backgammon'>('classic');
@@ -61,6 +65,7 @@ export function Home() {
             placeholder="ör. Kaan"
             maxLength={20}
           />
+          {!hasName && <p className="mt-1 text-xs text-amber-glow/80">Oynamak için bir takma ad gir.</p>}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -101,9 +106,26 @@ export function Home() {
               </p>
             )}
 
-            <button className="btn-primary w-full" onClick={create} disabled={busy}>
+            <button className="btn-primary w-full" onClick={create} disabled={busy || !hasName}>
               {busy ? 'Oluşturuluyor…' : 'Oda kur ve başla'}
             </button>
+
+            <div className="flex items-center gap-2 text-xs text-white/30">
+              <span className="h-px flex-1 bg-white/10" /> ya da <span className="h-px flex-1 bg-white/10" />
+            </div>
+
+            {matchmaking ? (
+              <div className="text-center">
+                <p className="animate-pulse text-sm text-amber-glow">🎯 Rakip aranıyor…</p>
+                <button className="btn-ghost mt-2 w-full" onClick={cancelMatch}>
+                  İptal
+                </button>
+              </div>
+            ) : (
+              <button className="btn-ghost w-full" onClick={() => findMatch(game)} disabled={!hasName}>
+                🎯 Rakip bul (rastgele online)
+              </button>
+            )}
           </div>
 
           {/* Join */}

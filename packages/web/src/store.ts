@@ -24,11 +24,14 @@ interface Store {
   toast: string | null;
   initialized: boolean;
   soundOn: boolean;
+  matchmaking: boolean;
 
   setNickname: (n: string) => void;
   toggleSound: () => void;
   displayName: () => string;
   init: () => void;
+  findMatch: (gameId: 'tavla' | 'dama') => Promise<void>;
+  cancelMatch: () => void;
   createRoom: (opts: { gameId: 'tavla' | 'dama'; mode?: 'classic' | 'backgammon'; targetPoints?: number }) => Promise<void>;
   joinRoom: (roomId: string) => Promise<void>;
   sendAction: (action: unknown) => Promise<void>;
@@ -48,6 +51,7 @@ export const useStore = create<Store>((set, get) => ({
   toast: null,
   initialized: false,
   soundOn: soundEnabled(),
+  matchmaking: false,
 
   setNickname(n) {
     const clean = n.slice(0, 20);
@@ -73,8 +77,13 @@ export const useStore = create<Store>((set, get) => ({
     // Note: re-joining on (re)connect is driven by the Room component's effect,
     // which depends on `connected`. Doing it here too caused double-join races.
     socket.on('connect', () => set({ connected: true }));
-    socket.on('disconnect', () => set({ connected: false }));
+    socket.on('disconnect', () => set({ connected: false, matchmaking: false }));
     socket.on('room:update', (u: RoomUpdate) => set({ update: u }));
+    socket.on('matchmake:found', (p: { roomId: string; token?: string }) => {
+      if (p.token) localStorage.setItem(tokenKey(p.roomId), p.token);
+      set({ matchmaking: false });
+      navigate(`/r/${p.roomId}`);
+    });
 
     watchAuth((user) => {
       const authUser: AuthUser | null = user
@@ -86,6 +95,18 @@ export const useStore = create<Store>((set, get) => ({
     });
 
     void fetchAccountsEnabled().then((accountsEnabled) => set({ accountsEnabled }));
+  },
+
+  async findMatch(gameId) {
+    set({ matchmaking: true });
+    const idToken = await currentIdToken();
+    const ack = await emit('matchmake', { gameId, name: get().displayName(), idToken });
+    if (!ack.ok) set({ matchmaking: false, toast: 'Eşleşme başlatılamadı.' });
+  },
+
+  cancelMatch() {
+    void emit('matchmake:cancel');
+    set({ matchmaking: false });
   },
 
   async createRoom(opts) {

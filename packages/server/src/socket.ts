@@ -89,9 +89,21 @@ function systemMessage(text: string): ChatMessage {
 const CHAT_WINDOW_MS = 5000;
 const CHAT_MAX_IN_WINDOW = 5;
 
+interface QueueEntry {
+  socketId: string;
+  name: string;
+  uid: string | null;
+  avatar: string | null;
+}
+
 export function attachSockets(io: Server, rooms: RoomManager): void {
   const passTimers = new Map<string, ReturnType<typeof setTimeout>>();
   const chatTimes = new Map<string, number[]>();
+  const queues = new Map<string, QueueEntry[]>(); // gameId -> waiting players
+
+  function leaveQueues(socketId: string): void {
+    for (const [g, list] of queues) queues.set(g, list.filter((e) => e.socketId !== socketId));
+  }
 
   function allowChat(socketId: string): boolean {
     const now = Date.now();
@@ -244,8 +256,38 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
       cb?.({ ok: true });
     });
 
+    // Online matchmaking: queue per game; pair the first two waiting players.
+    socket.on('matchmake', async (payload: { gameId?: string; name?: string; idToken?: string | null }, cb?: (ack: Ack) => void) => {
+      const user = await verifyIdToken(payload?.idToken);
+      const gameId = payload?.gameId === 'dama' ? 'dama' : 'tavla';
+      const me: QueueEntry = { socketId: socket.id, name: cleanName(payload?.name), uid: user?.uid ?? null, avatar: user?.picture ?? null };
+      const waiting = (queues.get(gameId) ?? []).filter(
+        (e) => e.socketId !== socket.id && io.sockets.sockets.get(e.socketId)?.connected,
+      );
+      const opp = waiting.shift();
+      if (!opp) {
+        waiting.push(me);
+        queues.set(gameId, waiting);
+        return cb?.({ ok: true });
+      }
+      queues.set(gameId, waiting);
+      const config = gameId === 'tavla' ? { mode: 'classic', targetPoints: 1 } : {};
+      const room = rooms.create(gameId, config);
+      const r1 = rooms.join(room, { name: opp.name, uid: opp.uid, avatar: opp.avatar, socketId: opp.socketId });
+      const r2 = rooms.join(room, { name: me.name, uid: me.uid, avatar: me.avatar, socketId: me.socketId });
+      io.sockets.sockets.get(opp.socketId)?.join(room.id);
+      socket.join(room.id);
+      broadcastRoom(io, room);
+      io.to(opp.socketId).emit('matchmake:found', { roomId: room.id, token: 'seat' in r1 ? r1.seat.token : undefined });
+      socket.emit('matchmake:found', { roomId: room.id, token: 'seat' in r2 ? r2.seat.token : undefined });
+      cb?.({ ok: true });
+    });
+
+    socket.on('matchmake:cancel', () => leaveQueues(socket.id));
+
     socket.on('disconnect', () => {
       chatTimes.delete(socket.id);
+      leaveQueues(socket.id);
       const room = rooms.detach(socket.id);
       if (room) broadcastRoom(io, room);
     });

@@ -16,17 +16,31 @@ function init(): void {
     firestore = getFirestore();
     return;
   }
+  // `initReason` is a coarse, safe-to-expose code; raw errors stay in the logs.
   try {
     const json = process.env.FIREBASE_SERVICE_ACCOUNT;
     if (json) {
-      const cred = JSON.parse(json) as { private_key?: string };
+      let cred: { private_key?: string };
+      try {
+        cred = JSON.parse(json);
+      } catch (e) {
+        initReason = 'invalid_service_account_json';
+        console.warn('[accounts] FIREBASE_SERVICE_ACCOUNT is not valid JSON:', (e as Error).message);
+        return;
+      }
       // Some env stores double-escape the newlines in the PEM private key.
       if (typeof cred.private_key === 'string') cred.private_key = cred.private_key.replace(/\\n/g, '\n');
-      initializeApp({ credential: cert(cred as Parameters<typeof cert>[0]) });
+      try {
+        initializeApp({ credential: cert(cred as Parameters<typeof cert>[0]) });
+      } catch (e) {
+        initReason = 'invalid_service_account';
+        console.warn('[accounts] service account rejected:', (e as Error).message);
+        return;
+      }
     } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
       initializeApp({ credential: applicationDefault() });
     } else {
-      initReason = 'FIREBASE_SERVICE_ACCOUNT not set';
+      initReason = 'not_configured';
       console.info('[accounts] Firebase not configured — accounts disabled (anonymous play still works).');
       return;
     }
@@ -34,8 +48,8 @@ function init(): void {
     enabled = true;
     console.info('[accounts] Firebase Admin initialised — accounts enabled.');
   } catch (e) {
-    initReason = (e as Error).message;
-    console.warn('[accounts] Firebase init failed — accounts disabled:', initReason);
+    initReason = 'init_failed';
+    console.warn('[accounts] Firebase init failed — accounts disabled:', (e as Error).message);
     enabled = false;
     firestore = null;
   }
