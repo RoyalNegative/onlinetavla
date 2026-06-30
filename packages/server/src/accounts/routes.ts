@@ -2,7 +2,7 @@
 // are disabled (empty leaderboard, 401 on authed routes).
 
 import { Router, type Request, type Response } from 'express';
-import { accountsEnabled, verifyIdToken } from './firebase';
+import { accountsEnabled, accountsReason, verifyIdToken } from './firebase';
 import {
   ensureProfile,
   getLeaderboard,
@@ -22,7 +22,7 @@ export function accountsRouter(): Router {
   const router = Router();
 
   router.get('/config', (_req, res) => {
-    res.json({ accountsEnabled: accountsEnabled() });
+    res.json({ accountsEnabled: accountsEnabled(), reason: accountsReason() });
   });
 
   router.get('/leaderboard', async (_req, res) => {

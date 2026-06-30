@@ -8,6 +8,7 @@ import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 
 let firestore: Firestore | null = null;
 let enabled = false;
+let initReason: string | null = null;
 
 function init(): void {
   if (getApps().length > 0) {
@@ -18,10 +19,14 @@ function init(): void {
   try {
     const json = process.env.FIREBASE_SERVICE_ACCOUNT;
     if (json) {
-      initializeApp({ credential: cert(JSON.parse(json)) });
+      const cred = JSON.parse(json) as { private_key?: string };
+      // Some env stores double-escape the newlines in the PEM private key.
+      if (typeof cred.private_key === 'string') cred.private_key = cred.private_key.replace(/\\n/g, '\n');
+      initializeApp({ credential: cert(cred as Parameters<typeof cert>[0]) });
     } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
       initializeApp({ credential: applicationDefault() });
     } else {
+      initReason = 'FIREBASE_SERVICE_ACCOUNT not set';
       console.info('[accounts] Firebase not configured — accounts disabled (anonymous play still works).');
       return;
     }
@@ -29,7 +34,8 @@ function init(): void {
     enabled = true;
     console.info('[accounts] Firebase Admin initialised — accounts enabled.');
   } catch (e) {
-    console.warn('[accounts] Firebase init failed — accounts disabled:', (e as Error).message);
+    initReason = (e as Error).message;
+    console.warn('[accounts] Firebase init failed — accounts disabled:', initReason);
     enabled = false;
     firestore = null;
   }
@@ -39,6 +45,11 @@ init();
 
 export function accountsEnabled(): boolean {
   return enabled;
+}
+
+/** Why accounts are off (for diagnostics). Null when enabled. */
+export function accountsReason(): string | null {
+  return enabled ? null : initReason;
 }
 
 export function db(): Firestore {
