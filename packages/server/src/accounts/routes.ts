@@ -3,11 +3,17 @@
 
 import { Router, type Request, type Response } from 'express';
 import { accountsEnabled, accountsReason, verifyIdToken } from './firebase';
+import { isOnline } from './presence';
 import {
+  addFriend,
   ensureProfile,
   getLeaderboard,
   getMatchHistory,
   getProfile,
+  joinTournament,
+  listFriends,
+  removeFriend,
+  tournamentStandings,
   updateProfile,
 } from './store';
 
@@ -48,6 +54,50 @@ export function accountsRouter(): Router {
     const uid = await uidFrom(req);
     if (!uid) return res.status(401).json({ error: 'unauthorized' });
     return res.json({ matches: await getMatchHistory(uid, 20) });
+  });
+
+  // ---- Friends ----
+  router.get('/friends', async (req: Request, res: Response) => {
+    const uid = await uidFrom(req);
+    if (!uid) return res.status(401).json({ error: 'unauthorized' });
+    const friends = await listFriends(uid);
+    return res.json({ friends: friends.map((f) => ({ ...f, online: isOnline(f.uid) })) });
+  });
+
+  router.post('/friends', async (req: Request, res: Response) => {
+    const uid = await uidFrom(req);
+    if (!uid) return res.status(401).json({ error: 'unauthorized' });
+    const handle = typeof req.body?.handle === 'string' ? req.body.handle : '';
+    if (!handle.trim()) return res.status(400).json({ error: 'handle_required' });
+    const result = await addFriend(uid, handle);
+    if ('error' in result) return res.status(404).json({ error: result.error });
+    return res.json({ friend: { ...result, online: isOnline(result.uid) } });
+  });
+
+  router.delete('/friends/:uid', async (req: Request, res: Response) => {
+    const uid = await uidFrom(req);
+    if (!uid) return res.status(401).json({ error: 'unauthorized' });
+    await removeFriend(uid, String(req.params.uid));
+    return res.json({ ok: true });
+  });
+
+  // ---- Tournaments (daily, per game) ----
+  router.get('/tournaments', async (req: Request, res: Response) => {
+    const gameId = req.query.gameId === 'dama' ? 'dama' : 'tavla';
+    const { meta, standings } = await tournamentStandings(gameId);
+    const uid = await uidFrom(req);
+    const joined = uid ? standings.some((s) => s.uid === uid) : false;
+    return res.json({ meta, standings, joined });
+  });
+
+  router.post('/tournaments/join', async (req: Request, res: Response) => {
+    const uid = await uidFrom(req);
+    if (!uid) return res.status(401).json({ error: 'unauthorized' });
+    const gameId = req.body?.gameId === 'dama' ? 'dama' : 'tavla';
+    const profile = await ensureProfile(uid, 'Oyuncu', null);
+    const result = await joinTournament(uid, gameId, profile.handle, profile.avatar);
+    if ('error' in result) return res.status(400).json({ error: result.error });
+    return res.json({ meta: result });
   });
 
   return router;

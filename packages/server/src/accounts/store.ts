@@ -3,6 +3,7 @@
 // the perks that make registering worthwhile; everything degrades to no-ops when
 // accounts are disabled.
 
+import { FieldValue } from 'firebase-admin/firestore';
 import { accountsEnabled, db } from './firebase';
 
 export interface UserStats {
@@ -130,6 +131,120 @@ export async function recordMatchResult(input: RecordMatchInput): Promise<void> 
     });
   }
   await batch.commit();
+
+  // Credit the winner's daily-tournament score if they joined it.
+  const winner = input.players.find((p) => p.color === input.winnerColor);
+  if (winner?.uid) {
+    try {
+      await bumpTournament(winner.uid, input.gameId, input.finishedAt);
+    } catch {
+      /* tournament credit is best-effort */
+    }
+  }
+}
+
+// ---- Friends ----
+
+export interface FriendInfo {
+  uid: string;
+  handle: string;
+  avatar: string | null;
+}
+
+export async function findUserByHandle(handle: string): Promise<FriendInfo | null> {
+  if (!accountsEnabled()) return null;
+  const snap = await db().collection('users').where('handle', '==', handle).limit(1).get();
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  const data = d.data() as UserStats;
+  return { uid: d.id, handle: data.handle, avatar: data.avatar };
+}
+
+export async function addFriend(uid: string, handle: string): Promise<FriendInfo | { error: string }> {
+  if (!accountsEnabled()) return { error: 'disabled' };
+  const target = await findUserByHandle(handle.trim());
+  if (!target) return { error: 'not_found' };
+  if (target.uid === uid) return { error: 'self' };
+  await db()
+    .collection('users')
+    .doc(uid)
+    .collection('friends')
+    .doc(target.uid)
+    .set({ handle: target.handle, avatar: target.avatar, addedAt: Date.now() }, { merge: true });
+  return target;
+}
+
+export async function removeFriend(uid: string, friendUid: string): Promise<void> {
+  if (!accountsEnabled()) return;
+  await db().collection('users').doc(uid).collection('friends').doc(friendUid).delete();
+}
+
+export async function listFriends(uid: string): Promise<FriendInfo[]> {
+  if (!accountsEnabled()) return [];
+  const snap = await db().collection('users').doc(uid).collection('friends').get();
+  return snap.docs.map((d) => ({
+    uid: d.id,
+    handle: (d.data().handle as string) ?? 'Oyuncu',
+    avatar: (d.data().avatar as string) ?? null,
+  }));
+}
+
+// ---- Daily tournaments (one per game per day) ----
+
+export interface TournamentMeta {
+  id: string;
+  gameId: string;
+  date: string;
+  name: string;
+}
+
+export interface TournamentStanding {
+  uid: string;
+  handle: string;
+  avatar: string | null;
+  points: number;
+  wins: number;
+}
+
+function dayStr(ts: number): string {
+  return new Date(ts).toISOString().slice(0, 10);
+}
+
+export function currentTournament(gameId: string, ts = Date.now()): TournamentMeta {
+  const date = dayStr(ts);
+  const name = `${gameId === 'dama' ? 'Dama' : 'Tavla'} Günlük Turnuva · ${date}`;
+  return { id: `${gameId}-${date}`, gameId, date, name };
+}
+
+export async function joinTournament(uid: string, gameId: string, handle: string, avatar: string | null): Promise<TournamentMeta | { error: string }> {
+  if (!accountsEnabled()) return { error: 'disabled' };
+  const t = currentTournament(gameId);
+  const tref = db().collection('tournaments').doc(t.id);
+  await tref.set({ gameId: t.gameId, date: t.date, name: t.name }, { merge: true });
+  await tref
+    .collection('participants')
+    .doc(uid)
+    .set({ handle, avatar, joinedAt: Date.now(), points: FieldValue.increment(0), wins: FieldValue.increment(0) }, { merge: true });
+  return t;
+}
+
+export async function tournamentStandings(gameId: string, ts = Date.now()): Promise<{ meta: TournamentMeta; standings: TournamentStanding[] }> {
+  const meta = currentTournament(gameId, ts);
+  if (!accountsEnabled()) return { meta, standings: [] };
+  const snap = await db().collection('tournaments').doc(meta.id).collection('participants').orderBy('points', 'desc').limit(50).get();
+  const standings = snap.docs.map((d) => {
+    const v = d.data();
+    return { uid: d.id, handle: (v.handle as string) ?? 'Oyuncu', avatar: (v.avatar as string) ?? null, points: (v.points as number) ?? 0, wins: (v.wins as number) ?? 0 };
+  });
+  return { meta, standings };
+}
+
+async function bumpTournament(uid: string, gameId: string, ts: number): Promise<void> {
+  const t = currentTournament(gameId, ts);
+  const pref = db().collection('tournaments').doc(t.id).collection('participants').doc(uid);
+  const doc = await pref.get();
+  if (!doc.exists) return; // only counts if the player joined
+  await pref.set({ points: FieldValue.increment(1), wins: FieldValue.increment(1) }, { merge: true });
 }
 
 export async function getLeaderboard(limit = 50): Promise<UserStats[]> {

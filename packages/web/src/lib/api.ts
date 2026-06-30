@@ -22,9 +22,9 @@ export interface LeaderboardEntry {
 
 export interface MatchRecord {
   roomId: string;
-  mode: 'classic' | 'backgammon';
+  gameId: string;
   won: boolean;
-  kind: 'single' | 'gammon' | 'backgammon';
+  kind: string;
   myScore: number;
   opponentName: string;
   opponentScore: number;
@@ -61,4 +61,67 @@ export async function fetchMyMatches(): Promise<MatchRecord[]> {
   const res = await fetch('/api/me/matches', { headers: await authHeaders() });
   if (!res.ok) return [];
   return ((await res.json()).matches ?? []) as MatchRecord[];
+}
+
+export async function updateHandle(handle: string): Promise<void> {
+  await fetch('/api/me', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+    body: JSON.stringify({ handle }),
+  });
+}
+
+export interface Friend {
+  uid: string;
+  handle: string;
+  avatar: string | null;
+  online: boolean;
+}
+
+export async function fetchFriends(): Promise<Friend[]> {
+  const res = await fetch('/api/friends', { headers: await authHeaders() });
+  if (!res.ok) return [];
+  return ((await res.json()).friends ?? []) as Friend[];
+}
+
+export async function addFriend(handle: string): Promise<{ friend?: Friend; error?: string }> {
+  const res = await fetch('/api/friends', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+    body: JSON.stringify({ handle }),
+  });
+  const data = await res.json();
+  return res.ok ? { friend: data.friend } : { error: data.error ?? 'error' };
+}
+
+export async function removeFriend(uid: string): Promise<void> {
+  await fetch(`/api/friends/${uid}`, { method: 'DELETE', headers: await authHeaders() });
+}
+
+export interface TournamentStanding {
+  uid: string;
+  handle: string;
+  avatar: string | null;
+  points: number;
+  wins: number;
+}
+
+export interface Tournament {
+  meta: { id: string; gameId: string; date: string; name: string };
+  standings: TournamentStanding[];
+  joined: boolean;
+}
+
+export async function fetchTournament(gameId: 'tavla' | 'dama'): Promise<Tournament> {
+  const res = await fetch(`/api/tournaments?gameId=${gameId}`, { headers: await authHeaders() });
+  return (await res.json()) as Tournament;
+}
+
+export async function joinTournament(gameId: 'tavla' | 'dama'): Promise<boolean> {
+  const res = await fetch('/api/tournaments/join', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+    body: JSON.stringify({ gameId }),
+  });
+  return res.ok;
 }

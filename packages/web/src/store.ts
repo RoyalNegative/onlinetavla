@@ -25,6 +25,7 @@ interface Store {
   initialized: boolean;
   soundOn: boolean;
   matchmaking: boolean;
+  invite: { fromName: string; roomId: string; gameId: string } | null;
 
   setNickname: (n: string) => void;
   toggleSound: () => void;
@@ -32,6 +33,9 @@ interface Store {
   init: () => void;
   findMatch: (gameId: 'tavla' | 'dama') => Promise<void>;
   cancelMatch: () => void;
+  inviteFriend: (toUid: string, gameId: 'tavla' | 'dama') => Promise<void>;
+  acceptInvite: () => void;
+  dismissInvite: () => void;
   createRoom: (opts: { gameId: 'tavla' | 'dama'; mode?: 'classic' | 'backgammon'; targetPoints?: number }) => Promise<void>;
   joinRoom: (roomId: string) => Promise<void>;
   sendAction: (action: unknown) => Promise<void>;
@@ -52,6 +56,7 @@ export const useStore = create<Store>((set, get) => ({
   initialized: false,
   soundOn: soundEnabled(),
   matchmaking: false,
+  invite: null,
 
   setNickname(n) {
     const clean = n.slice(0, 20);
@@ -74,9 +79,17 @@ export const useStore = create<Store>((set, get) => ({
     if (get().initialized) return;
     set({ initialized: true });
 
+    const announcePresence = async () => {
+      const idToken = await currentIdToken();
+      if (idToken) socket.emit('presence:online', { idToken });
+    };
+
     // Note: re-joining on (re)connect is driven by the Room component's effect,
     // which depends on `connected`. Doing it here too caused double-join races.
-    socket.on('connect', () => set({ connected: true }));
+    socket.on('connect', () => {
+      set({ connected: true });
+      if (get().authUser) void announcePresence();
+    });
     socket.on('disconnect', () => set({ connected: false, matchmaking: false }));
     socket.on('room:update', (u: RoomUpdate) => set({ update: u }));
     socket.on('matchmake:found', (p: { roomId: string; token?: string }) => {
@@ -84,12 +97,14 @@ export const useStore = create<Store>((set, get) => ({
       set({ matchmaking: false });
       navigate(`/r/${p.roomId}`);
     });
+    socket.on('friend:invited', (p: { fromName: string; roomId: string; gameId: string }) => set({ invite: p }));
 
     watchAuth((user) => {
       const authUser: AuthUser | null = user
         ? { uid: user.uid, name: user.displayName ?? 'Oyuncu', avatar: user.photoURL ?? null }
         : null;
       set({ authUser });
+      if (authUser && get().connected) void announcePresence();
       const rid = roomIdFromPath(window.location.pathname);
       if (rid && get().connected) void get().joinRoom(rid);
     });
@@ -107,6 +122,28 @@ export const useStore = create<Store>((set, get) => ({
   cancelMatch() {
     void emit('matchmake:cancel');
     set({ matchmaking: false });
+  },
+
+  async inviteFriend(toUid, gameId) {
+    const idToken = await currentIdToken();
+    const ack = await emit('friend:invite', { toUid, gameId, name: get().displayName(), idToken });
+    if (ack.ok && ack.roomId) {
+      if (ack.token) localStorage.setItem(tokenKey(ack.roomId), ack.token);
+      navigate(`/r/${ack.roomId}`);
+    } else {
+      set({ toast: ack.error === 'offline' ? 'Arkadaşın çevrimdışı.' : 'Davet gönderilemedi.' });
+    }
+  },
+
+  acceptInvite() {
+    const inv = get().invite;
+    if (!inv) return;
+    set({ invite: null });
+    navigate(`/r/${inv.roomId}`);
+  },
+
+  dismissInvite() {
+    set({ invite: null });
   },
 
   async createRoom(opts) {

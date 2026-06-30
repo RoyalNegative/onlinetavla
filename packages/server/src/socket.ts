@@ -6,6 +6,7 @@ import type { Server, Socket } from 'socket.io';
 import { games } from '@tavla/engine';
 import type { GameMode } from '@tavla/engine';
 import { verifyIdToken } from './accounts/firebase';
+import * as presence from './accounts/presence';
 import { recordMatchResult, type MatchPlayer } from './accounts/store';
 import type { RoomManager, Room, ChatMessage } from './rooms';
 import type {
@@ -285,9 +286,35 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
 
     socket.on('matchmake:cancel', () => leaveQueues(socket.id));
 
+    // Presence: register the authenticated user as online for this socket.
+    socket.on('presence:online', async (payload: { idToken?: string | null }) => {
+      const user = await verifyIdToken(payload?.idToken);
+      if (user) {
+        presence.attach(user.uid, socket.id);
+        socket.data.uid = user.uid;
+      }
+    });
+
+    // Invite a friend to a fresh room (only if they're online).
+    socket.on('friend:invite', async (payload: { toUid?: string; gameId?: string; name?: string; idToken?: string | null }, cb?: (ack: Ack) => void) => {
+      const targets = presence.socketsFor(payload?.toUid ?? '');
+      if (targets.length === 0) return cb?.({ ok: false, error: 'offline' });
+      const user = await verifyIdToken(payload?.idToken);
+      const gameId = payload?.gameId === 'dama' ? 'dama' : 'tavla';
+      const config = gameId === 'tavla' ? { mode: 'classic', targetPoints: 1 } : {};
+      const room = rooms.create(gameId, config);
+      const r = rooms.join(room, { name: cleanName(payload?.name), uid: user?.uid ?? null, avatar: user?.picture ?? null, socketId: socket.id });
+      socket.join(room.id);
+      broadcastRoom(io, room);
+      for (const sid of targets) io.to(sid).emit('friend:invited', { fromName: cleanName(payload?.name), roomId: room.id, gameId });
+      cb?.({ ok: true, roomId: room.id, token: 'seat' in r ? r.seat.token : undefined });
+    });
+
     socket.on('disconnect', () => {
       chatTimes.delete(socket.id);
       leaveQueues(socket.id);
+      const uid = socket.data?.uid as string | undefined;
+      if (uid) presence.detach(uid, socket.id);
       const room = rooms.detach(socket.id);
       if (room) broadcastRoom(io, room);
     });

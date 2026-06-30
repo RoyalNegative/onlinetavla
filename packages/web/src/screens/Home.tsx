@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Header } from '../components/Header';
+import { fetchTournament, joinTournament, type Tournament } from '../lib/api';
 import { navigate } from '../router';
 import { useStore } from '../store';
 
@@ -55,6 +56,8 @@ export function Home() {
             💡 İstersen <b>giriş yap</b> — istatistiklerin, Elo puanın ve sıralaman kaydedilsin. Oynamak için şart değil.
           </div>
         )}
+
+        {accountsEnabled && <TournamentBanner game={game} authed={!!authUser} />}
 
         <div className="mb-5">
           <label className="mb-1 block text-sm text-white/60">Takma adın</label>
@@ -163,6 +166,37 @@ function Toggle({ active, onClick, title, sub }: { active: boolean; onClick: () 
       <div className="font-bold leading-tight">{title}</div>
       <div className={`text-[10px] ${active ? 'text-ink-900/70' : 'text-white/40'}`}>{sub}</div>
     </button>
+  );
+}
+
+function TournamentBanner({ game, authed }: { game: 'tavla' | 'dama'; authed: boolean }) {
+  const [t, setT] = useState<Tournament | null>(null);
+  useEffect(() => {
+    void fetchTournament(game).then(setT);
+  }, [game]);
+  if (!t) return null;
+  return (
+    <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-amber-glow/30 bg-amber-glow/10 px-4 py-3">
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold text-amber-glow/90">🎪 {t.meta.name}</p>
+        <p className="text-xs text-white/50">{t.standings.length} katılımcı · kazandıkça puan</p>
+      </div>
+      {t.joined ? (
+        <span className="shrink-0 text-sm text-emerald-400">✓ Katıldın</span>
+      ) : authed ? (
+        <button
+          className="btn-primary shrink-0 px-3 py-2 text-sm"
+          onClick={async () => {
+            await joinTournament(game);
+            void fetchTournament(game).then(setT);
+          }}
+        >
+          Katıl
+        </button>
+      ) : (
+        <span className="shrink-0 text-xs text-white/50">Giriş yap</span>
+      )}
+    </div>
   );
 }
 
