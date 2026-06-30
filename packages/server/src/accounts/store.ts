@@ -3,7 +3,6 @@
 // the perks that make registering worthwhile; everything degrades to no-ops when
 // accounts are disabled.
 
-import type { GameMode, WinKind } from '@tavla/engine';
 import { accountsEnabled, db } from './firebase';
 
 export interface UserStats {
@@ -31,11 +30,10 @@ export interface MatchPlayer {
 
 export interface RecordMatchInput {
   roomId: string;
-  mode: GameMode;
-  targetPoints: number;
+  gameId: string;
   players: MatchPlayer[];
   winnerColor: 'white' | 'black';
-  finalKind: WinKind;
+  finalKind: string; // tavla: single|gammon|backgammon, dama: win
   finishedAt: number;
 }
 
@@ -99,7 +97,8 @@ export async function recordMatchResult(input: RecordMatchInput): Promise<void> 
         games: s.games + 1,
         wins: s.wins + (won ? 1 : 0),
         losses: s.losses + (won ? 0 : 1),
-        gammons: s.gammons + (won && input.finalKind !== 'single' ? 1 : 0),
+        gammons:
+          s.gammons + (won && (input.finalKind === 'gammon' || input.finalKind === 'backgammon') ? 1 : 0),
         rating: newRatings[i],
         streak,
         bestStreak: Math.max(s.bestStreak, streak),
@@ -120,8 +119,7 @@ export async function recordMatchResult(input: RecordMatchInput): Promise<void> 
     const opponent = input.players.find((o) => o.seat !== p.seat);
     batch.set(ref, {
       roomId: input.roomId,
-      mode: input.mode,
-      targetPoints: input.targetPoints,
+      gameId: input.gameId,
       won: p.color === input.winnerColor,
       kind: input.finalKind,
       myScore: p.score,

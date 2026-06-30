@@ -3,8 +3,7 @@
 // transitions only* — all IO (sockets, Firestore) lives in the socket layer.
 
 import { customAlphabet } from 'nanoid';
-import { tavlaModule } from '@tavla/engine';
-import type { Action, MatchConfig, MatchState } from '@tavla/engine';
+import { games } from '@tavla/engine';
 import { cryptoRng } from './crypto-rng';
 
 const newRoomId = customAlphabet('abcdefghjkmnpqrstuvwxyz23456789', 6); // unambiguous
@@ -34,9 +33,9 @@ export interface Seat {
 
 export interface Room {
   id: string;
-  gameId: string; // which GameModule (tavla)
-  config: MatchConfig;
-  state: MatchState;
+  gameId: string; // which GameModule (tavla | dama)
+  config: unknown;
+  state: unknown;
   seats: Seat[];
   spectators: Map<string, { name: string }>;
   chat: ChatMessage[];
@@ -59,14 +58,15 @@ export class RoomManager {
   private rooms = new Map<string, Room>();
   private socketRoom = new Map<string, string>();
 
-  create(config: MatchConfig): Room {
+  create(gameId: string, config: unknown): Room {
+    const game = games[gameId] ?? games.tavla;
     let id = newRoomId();
     while (this.rooms.has(id)) id = newRoomId();
     const room: Room = {
       id,
-      gameId: tavlaModule.id,
+      gameId: game.id,
       config,
-      state: tavlaModule.createInitialState(config),
+      state: game.createInitialState(config),
       seats: [],
       spectators: new Map(),
       chat: [],
@@ -140,8 +140,8 @@ export class RoomManager {
     return room.seats.find((s) => s.socketId === socketId);
   }
 
-  applyAction(room: Room, seatIndex: number, action: Action): void {
-    room.state = tavlaModule.applyAction(room.state, action, seatIndex, cryptoRng);
+  applyAction(room: Room, seatIndex: number, action: unknown): void {
+    room.state = games[room.gameId].applyAction(room.state, action, seatIndex, cryptoRng);
     room.lastActive = Date.now();
   }
 
@@ -154,7 +154,7 @@ export class RoomManager {
   }
 
   resetMatch(room: Room): void {
-    room.state = tavlaModule.createInitialState(room.config);
+    room.state = games[room.gameId].createInitialState(room.config);
     room.recordedMatch = false;
     room.seats.forEach((s) => (s.rematchVote = false));
     room.lastActive = Date.now();
@@ -182,7 +182,7 @@ export class RoomManager {
   }
 
   status(room: Room): 'waiting' | 'playing' | 'finished' {
-    if (room.state.matchWinner) return 'finished';
+    if (games[room.gameId].isOver(room.state)) return 'finished';
     return room.seats.length < 2 ? 'waiting' : 'playing';
   }
 

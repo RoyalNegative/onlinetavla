@@ -3,7 +3,7 @@
 // matches to the (optional) accounts store.
 
 import type { Server, Socket } from 'socket.io';
-import { mustPass, seatToColor, tavlaModule } from '@tavla/engine';
+import { games } from '@tavla/engine';
 import type { GameMode } from '@tavla/engine';
 import { verifyIdToken } from './accounts/firebase';
 import { recordMatchResult, type MatchPlayer } from './accounts/store';
@@ -38,7 +38,7 @@ function buildSnapshot(room: Room): RoomSnapshot {
   return {
     roomId: room.id,
     gameId: room.gameId,
-    status: room.state.matchWinner ? 'finished' : room.seats.length < 2 ? 'waiting' : 'playing',
+    status: games[room.gameId].isOver(room.state) ? 'finished' : room.seats.length < 2 ? 'waiting' : 'playing',
     players: room.seats.map((s) => ({
       seat: s.index,
       color: s.index === 0 ? 'white' : 'black',
@@ -55,11 +55,12 @@ function buildSnapshot(room: Room): RoomSnapshot {
 
 function broadcastRoom(io: Server, room: Room): void {
   const snapshot = buildSnapshot(room);
+  const game = games[room.gameId];
   for (const seat of room.seats) {
     if (seat.socketId && seat.connected) {
       io.to(seat.socketId).emit('room:update', {
         you: { seat: seat.index, name: seat.name, uid: seat.uid },
-        view: tavlaModule.viewFor(room.state, seat.index),
+        view: game.viewFor(room.state, seat.index),
         room: snapshot,
       });
     }
@@ -68,7 +69,7 @@ function broadcastRoom(io: Server, room: Room): void {
     if (room.seats.some((s) => s.socketId === sid)) continue; // safety: seat wins
     io.to(sid).emit('room:update', {
       you: { seat: null, name: info.name, uid: null },
-      view: tavlaModule.viewFor(room.state, null),
+      view: game.viewFor(room.state, null),
       room: snapshot,
     });
   }
@@ -104,20 +105,17 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
     return true;
   }
 
-  function maybeAutoPass(room: Room): void {
-    if (room.state.matchWinner) return;
-    if (!mustPass(room.state.game)) return;
-    if (passTimers.has(room.id)) return;
+  function maybeAutoStep(room: Room): void {
+    const step = games[room.gameId].needsAutoStep?.(room.state);
+    if (!step || passTimers.has(room.id)) return;
     const timer = setTimeout(() => {
       passTimers.delete(room.id);
       const current = rooms.get(room.id);
-      if (!current || !mustPass(current.state.game)) return;
-      const seatIndex = current.seats.find(
-        (s) => seatToColor(s.index) === current.state.game.turn,
-      )?.index;
-      if (seatIndex === undefined) return;
+      if (!current) return;
+      const s = games[current.gameId].needsAutoStep?.(current.state);
+      if (!s) return;
       try {
-        rooms.applyAction(current, seatIndex, { type: 'pass' });
+        rooms.applyAction(current, s.seat, s.action);
       } catch {
         /* state already advanced */
       }
@@ -127,7 +125,10 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
   }
 
   async function maybeRecord(room: Room): Promise<void> {
-    if (!room.state.matchWinner || room.recordedMatch) return;
+    const game = games[room.gameId];
+    if (!game.isOver(room.state) || room.recordedMatch) return;
+    const res = game.result?.(room.state);
+    if (!res) return;
     room.recordedMatch = true;
     const players: MatchPlayer[] = room.seats.map((s) => ({
       seat: s.index,
@@ -135,16 +136,15 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
       uid: s.uid,
       name: s.name,
       avatar: s.avatar,
-      score: s.index === 0 ? room.state.score.white : room.state.score.black,
+      score: res.scores[s.index] ?? 0,
     }));
     try {
       await recordMatchResult({
         roomId: room.id,
-        mode: room.config.mode,
-        targetPoints: room.config.targetPoints,
+        gameId: room.gameId,
         players,
-        winnerColor: room.state.matchWinner,
-        finalKind: room.state.lastResult?.kind ?? 'single',
+        winnerColor: res.winnerSeat === 0 ? 'white' : 'black',
+        finalKind: res.kind,
         finishedAt: Date.now(),
       });
     } catch (e) {
@@ -155,8 +155,12 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
   io.on('connection', (socket: Socket) => {
     socket.on('room:create', async (payload: CreatePayload, cb?: (ack: Ack) => void) => {
       const user = await verifyIdToken(payload?.idToken);
-      const config = { mode: cleanMode(payload?.mode), targetPoints: cleanTarget(payload?.targetPoints) };
-      const room = rooms.create(config);
+      const gameId = payload?.gameId === 'dama' ? 'dama' : 'tavla';
+      const config =
+        gameId === 'tavla'
+          ? { mode: cleanMode(payload?.mode), targetPoints: cleanTarget(payload?.targetPoints) }
+          : {};
+      const room = rooms.create(gameId, config);
       const result = rooms.join(room, {
         name: cleanName(payload?.name),
         uid: user?.uid ?? null,
@@ -186,7 +190,7 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
         rooms.addChat(room, systemMessage(`${result.seat.name} katıldı`));
       }
       broadcastRoom(io, room);
-      maybeAutoPass(room);
+      maybeAutoStep(room);
       if ('seat' in result) {
         cb?.({ ok: true, roomId: room.id, token: result.seat.token, seat: result.seat.index });
       } else {
@@ -206,7 +210,7 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
       }
       broadcastRoom(io, room);
       void maybeRecord(room);
-      maybeAutoPass(room);
+      maybeAutoStep(room);
       cb?.({ ok: true });
     });
 

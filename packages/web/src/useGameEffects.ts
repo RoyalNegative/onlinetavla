@@ -1,19 +1,14 @@
 // Side-effects driven by the live view: sound effects and a tab-title flash
-// when it becomes your turn while the tab is in the background.
+// when it becomes your turn while the tab is in the background. Works for both
+// games (tavla's dice/moves and dama's moves/captures).
 
 import { useEffect, useRef } from 'react';
+import type { DamaView, TavlaView } from '@tavla/engine';
 import { sfx } from './lib/sound';
 import type { RoomUpdate } from './protocol';
 
 export function useGameEffects(update: RoomUpdate | null): void {
-  const prev = useRef({
-    moveSeq: 0,
-    dice: '',
-    barTotal: 0,
-    phase: '',
-    matchWinner: null as string | null,
-    yourTurn: false,
-  });
+  const prev = useRef({ moveSeq: 0, dice: '', barTotal: 0, over: false, yourTurn: false });
   const flash = useRef<ReturnType<typeof setInterval> | null>(null);
   const baseTitle = useRef(typeof document !== 'undefined' ? document.title : 'Tavla');
 
@@ -35,40 +30,52 @@ export function useGameEffects(update: RoomUpdate | null): void {
 
   useEffect(() => {
     if (!update) return;
-    const g = update.view.game;
     const p = prev.current;
-    const barTotal = g.bar.white + g.bar.black;
+    const you = update.view.youAre;
+    const yourTurn = update.view.yourTurn;
+    let moveSeq = p.moveSeq;
+    let dice = p.dice;
+    let barTotal = p.barTotal;
+    let over = p.over;
 
-    if (g.moveSeq !== p.moveSeq) {
-      if (barTotal > p.barTotal) sfx.hit();
-      else sfx.move();
+    if (update.room.gameId === 'dama') {
+      const v = update.view as DamaView;
+      moveSeq = v.moveSeq;
+      if (moveSeq !== p.moveSeq) {
+        if (v.lastMove && v.lastMove.captures.length > 0) sfx.hit();
+        else sfx.move();
+      }
+      over = v.winner !== null;
+      if (over && !p.over && you) {
+        if (v.winner === you) sfx.win();
+        else sfx.lose();
+      }
+    } else {
+      const g = (update.view as TavlaView).game;
+      moveSeq = g.moveSeq;
+      barTotal = g.bar.white + g.bar.black;
+      dice = g.dice.join(',');
+      if (moveSeq !== p.moveSeq) {
+        if (barTotal > p.barTotal) sfx.hit();
+        else sfx.move();
+      }
+      if (dice && dice !== p.dice) sfx.dice();
+      const matchWinner = (update.view as TavlaView).matchWinner;
+      over = matchWinner !== null || g.phase === 'gameOver';
+      if (over && !p.over && you) {
+        const winner = matchWinner ?? g.result?.winner;
+        if (winner === you) sfx.win();
+        else sfx.lose();
+      }
     }
 
-    const diceSig = g.dice.join(',');
-    if (diceSig && diceSig !== p.dice) sfx.dice();
-
-    if (update.view.matchWinner && update.view.matchWinner !== p.matchWinner) {
-      if (update.view.matchWinner === update.view.youAre) sfx.win();
-      else sfx.lose();
-    } else if (g.phase === 'gameOver' && p.phase !== 'gameOver' && !update.view.matchWinner) {
-      if (g.result?.winner === update.view.youAre) sfx.win();
-      else sfx.lose();
-    }
-
-    if (update.view.yourTurn && !p.yourTurn) {
+    if (yourTurn && !p.yourTurn) {
       sfx.turn();
       if (document.hidden) startFlash();
     }
     if (!document.hidden) stopFlash();
 
-    prev.current = {
-      moveSeq: g.moveSeq,
-      dice: diceSig,
-      barTotal,
-      phase: g.phase,
-      matchWinner: update.view.matchWinner,
-      yourTurn: update.view.yourTurn,
-    };
+    prev.current = { moveSeq, dice, barTotal, over, yourTurn };
   }, [update]);
 
   useEffect(() => {

@@ -2,7 +2,6 @@
 // connection, and the current room snapshot pushed by the server.
 
 import { create } from 'zustand';
-import type { Action } from '@tavla/engine';
 import { fetchAccountsEnabled } from './lib/api';
 import { currentIdToken, watchAuth } from './lib/firebase';
 import { emit, socket } from './lib/socket';
@@ -30,9 +29,9 @@ interface Store {
   toggleSound: () => void;
   displayName: () => string;
   init: () => void;
-  createRoom: (opts: { mode: 'classic' | 'backgammon'; targetPoints: number }) => Promise<void>;
+  createRoom: (opts: { gameId: 'tavla' | 'dama'; mode?: 'classic' | 'backgammon'; targetPoints?: number }) => Promise<void>;
   joinRoom: (roomId: string) => Promise<void>;
-  sendAction: (action: Action) => Promise<void>;
+  sendAction: (action: unknown) => Promise<void>;
   sendChat: (text: string, kind?: 'chat' | 'emoji') => void;
   voteRematch: () => void;
   setToast: (t: string | null) => void;
@@ -93,6 +92,7 @@ export const useStore = create<Store>((set, get) => ({
     const idToken = await currentIdToken();
     const ack = await emit('room:create', {
       name: get().displayName(),
+      gameId: opts.gameId,
       mode: opts.mode,
       targetPoints: opts.targetPoints,
       idToken,

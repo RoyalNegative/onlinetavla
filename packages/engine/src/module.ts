@@ -20,6 +20,11 @@ export interface GameModule<State, ActionT, Config, View> {
   isOver(state: State): boolean;
   /** Redact state for a viewer (a seat index, or null for a spectator). */
   viewFor(state: State, seat: number | null): View;
+  /** An action the server should auto-apply after a short delay (e.g. tavla's
+   *  forced pass when no dice are playable). Null when nothing is pending. */
+  needsAutoStep?(state: State): { seat: number; action: ActionT } | null;
+  /** The finished-match result, for recording stats. Null until the match is over. */
+  result?(state: State): { winnerSeat: number; kind: string; scores: [number, number] } | null;
 }
 
 export function seatToColor(seat: number): Player {
@@ -76,6 +81,20 @@ export const tavlaModule: GameModule<MatchState, Action, MatchConfig, TavlaView>
       legalMoves: yourTurn ? legalMoves(state.game) : [],
       mustPass: yourTurn ? mustPass(state.game) : false,
       pip: { white: pipCount(state.game, 'white'), black: pipCount(state.game, 'black') },
+    };
+  },
+
+  needsAutoStep(state) {
+    if (state.matchWinner || !mustPass(state.game)) return null;
+    return { seat: state.game.turn === 'white' ? 0 : 1, action: { type: 'pass' } };
+  },
+
+  result(state) {
+    if (!state.matchWinner) return null;
+    return {
+      winnerSeat: state.matchWinner === 'white' ? 0 : 1,
+      kind: state.lastResult?.kind ?? 'single',
+      scores: [state.score.white, state.score.black],
     };
   },
 };

@@ -12,6 +12,7 @@ export function Home() {
   const accountsEnabled = useStore((s) => s.accountsEnabled);
   const authUser = useStore((s) => s.authUser);
 
+  const [game, setGame] = useState<'tavla' | 'dama'>('tavla');
   const [mode, setMode] = useState<'classic' | 'backgammon'>('classic');
   const [target, setTarget] = useState(5);
   const [joinCode, setJoinCode] = useState('');
@@ -19,7 +20,7 @@ export function Home() {
 
   async function create() {
     setBusy(true);
-    await createRoom({ mode, targetPoints: target });
+    await createRoom({ gameId: game, mode, targetPoints: target });
     setBusy(false);
   }
 
@@ -65,21 +66,37 @@ export function Home() {
             <h2 className="text-lg font-bold">Yeni oda</h2>
 
             <div>
-              <span className="mb-1 block text-xs text-white/50">Kurallar</span>
+              <span className="mb-1 block text-xs text-white/50">Oyun</span>
               <div className="grid grid-cols-2 gap-2">
-                <Toggle active={mode === 'classic'} onClick={() => setMode('classic')} title="Klasik" sub="çift zar yok" />
-                <Toggle active={mode === 'backgammon'} onClick={() => setMode('backgammon')} title="Çift zarlı" sub="doubling cube" />
+                <Toggle active={game === 'tavla'} onClick={() => setGame('tavla')} title="🎲 Tavla" sub="backgammon" />
+                <Toggle active={game === 'dama'} onClick={() => setGame('dama')} title="⛀ Dama" sub="Türk daması" />
               </div>
             </div>
 
-            <div>
-              <span className="mb-1 block text-xs text-white/50">Maç hedefi (sayı)</span>
-              <div className="grid grid-cols-4 gap-2">
-                {TARGETS.map((t) => (
-                  <Toggle key={t} active={target === t} onClick={() => setTarget(t)} title={`${t}`} sub={t === 1 ? 'tek' : 'sayı'} />
-                ))}
-              </div>
-            </div>
+            {game === 'tavla' ? (
+              <>
+                <div>
+                  <span className="mb-1 block text-xs text-white/50">Kurallar</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Toggle active={mode === 'classic'} onClick={() => setMode('classic')} title="Klasik" sub="çift zar yok" />
+                    <Toggle active={mode === 'backgammon'} onClick={() => setMode('backgammon')} title="Çift zarlı" sub="doubling cube" />
+                  </div>
+                </div>
+                <div>
+                  <span className="mb-1 block text-xs text-white/50">Maç hedefi (sayı)</span>
+                  <div className="grid grid-cols-4 gap-2">
+                    {TARGETS.map((t) => (
+                      <Toggle key={t} active={target === t} onClick={() => setTarget(t)} title={`${t}`} sub={t === 1 ? 'tek' : 'sayı'} />
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <p className="rounded-xl bg-white/5 p-3 text-xs text-white/50">
+                Türk daması: taşlar ileri ve yana hareket eder, geriye yiyemez. Son sıraya ulaşan
+                taş <b>dama</b> olur (uzaktan oynar). Yeme zorunludur, en çok yiyeni oynamalısın.
+              </p>
+            )}
 
             <button className="btn-primary w-full" onClick={create} disabled={busy}>
               {busy ? 'Oluşturuluyor…' : 'Oda kur ve başla'}

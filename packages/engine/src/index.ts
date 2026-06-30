@@ -44,3 +44,16 @@ export {
 export { createMatch, applyAction } from './match';
 export { tavlaModule, seatToColor } from './module';
 export type { GameModule, TavlaView } from './module';
+export { damaModule, createInitialDama, generateMoves } from './dama';
+export type { DamaState, DamaMove, DamaView, DamaAction } from './dama';
+
+import { damaModule } from './dama';
+import { tavlaModule } from './module';
+
+/** Registry of all hostable games, keyed by id. The server is game-agnostic. */
+export const games: Record<string, import('./module').GameModule<any, any, any, any>> = {
+  tavla: tavlaModule,
+  dama: damaModule,
+};
+
+export type GameId = 'tavla' | 'dama';

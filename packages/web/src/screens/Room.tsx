@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
+import type { DamaView, TavlaView } from '@tavla/engine';
 import { Board } from '../components/Board';
 import { Chat } from '../components/Chat';
 import { Controls } from '../components/Controls';
+import { DamaBoard } from '../components/DamaBoard';
+import { DamaPanel } from '../components/DamaPanel';
 import { Header } from '../components/Header';
 import { PlayerPanel } from '../components/PlayerPanel';
 import { navigate } from '../router';
@@ -24,6 +27,10 @@ export function Room({ roomId }: { roomId: string }) {
 
   const inThisRoom = update?.room.roomId === roomId;
   const yourTurn = !!update?.view.yourTurn;
+  const isDama = update?.room.gameId === 'dama';
+  // Only read inside the inThisRoom branch, where `update` is non-null.
+  const tview = update?.view as TavlaView;
+  const dview = update?.view as DamaView;
 
   return (
     <div className="mx-auto flex min-h-full max-w-6xl flex-col">
@@ -46,23 +53,36 @@ export function Room({ roomId }: { roomId: string }) {
       ) : (
         <main className="grid flex-1 items-start gap-3 px-2 pb-6 sm:gap-4 sm:px-6 md:grid-cols-[1fr_300px] lg:grid-cols-[1fr_340px]">
           <div className={`relative rounded-2xl transition-shadow ${yourTurn ? 'ring-2 ring-amber-glow/70 shadow-[0_0_30px_rgba(245,177,76,0.25)]' : ''}`}>
-            <Board
-              view={update.view}
-              interactive={
-                update.view.yourTurn &&
-                update.view.game.phase === 'moving' &&
-                update.view.legalMoves.length > 0
-              }
-              onAction={sendAction}
-            />
+            {isDama ? (
+              <DamaBoard view={dview} interactive={dview.yourTurn && dview.legalMoves.length > 0} onAction={sendAction} />
+            ) : (
+              <Board
+                view={tview}
+                interactive={tview.yourTurn && tview.game.phase === 'moving' && tview.legalMoves.length > 0}
+                onAction={sendAction}
+              />
+            )}
             {update.room.status === 'waiting' && <WaitingOverlay roomId={roomId} />}
           </div>
 
           <aside className="flex min-h-0 flex-col gap-4">
-            <PlayerPanel view={update.view} players={update.room.players} youSeat={update.you.seat} />
-            <div className="card p-4">
-              <Controls view={update.view} onAction={sendAction} onRematch={voteRematch} rematch={update.room.rematch} />
-            </div>
+            {isDama ? (
+              <DamaPanel
+                view={dview}
+                players={update.room.players}
+                youSeat={update.you.seat}
+                onResign={() => sendAction({ type: 'resign' })}
+                onRematch={voteRematch}
+                rematch={update.room.rematch}
+              />
+            ) : (
+              <>
+                <PlayerPanel view={tview} players={update.room.players} youSeat={update.you.seat} />
+                <div className="card p-4">
+                  <Controls view={tview} onAction={sendAction} onRematch={voteRematch} rematch={update.room.rematch} />
+                </div>
+              </>
+            )}
             {update.room.status === 'waiting' && <InvitePanel roomId={roomId} />}
             <Chat messages={update.room.chat} onSend={sendChat} />
           </aside>

@@ -5,8 +5,9 @@ import type { Action, GameMode, TavlaView } from '@tavla/engine';
 
 export interface CreatePayload {
   name: string;
-  mode: GameMode;
-  targetPoints: number;
+  gameId?: string; // 'tavla' (default) | 'dama'
+  mode?: GameMode; // tavla only
+  targetPoints?: number; // tavla only
   idToken?: string | null;
 }
 
