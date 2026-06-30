@@ -179,6 +179,12 @@ export async function removeFriend(uid: string, friendUid: string): Promise<void
   await db().collection('users').doc(uid).collection('friends').doc(friendUid).delete();
 }
 
+export async function isFriend(uid: string, friendUid: string): Promise<boolean> {
+  if (!accountsEnabled()) return false;
+  const doc = await db().collection('users').doc(uid).collection('friends').doc(friendUid).get();
+  return doc.exists;
+}
+
 export async function listFriends(uid: string): Promise<FriendInfo[]> {
   if (!accountsEnabled()) return [];
   const snap = await db().collection('users').doc(uid).collection('friends').get();

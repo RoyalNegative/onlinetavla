@@ -7,7 +7,7 @@ import { games } from '@tavla/engine';
 import type { GameMode } from '@tavla/engine';
 import { verifyIdToken } from './accounts/firebase';
 import * as presence from './accounts/presence';
-import { recordMatchResult, type MatchPlayer } from './accounts/store';
+import { isFriend, recordMatchResult, type MatchPlayer } from './accounts/store';
 import type { RoomManager, Room, ChatMessage } from './rooms';
 import type {
   Ack,
@@ -295,18 +295,25 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
       }
     });
 
-    // Invite a friend to a fresh room (only if they're online).
-    socket.on('friend:invite', async (payload: { toUid?: string; gameId?: string; name?: string; idToken?: string | null }, cb?: (ack: Ack) => void) => {
-      const targets = presence.socketsFor(payload?.toUid ?? '');
-      if (targets.length === 0) return cb?.({ ok: false, error: 'offline' });
+    // Invite a friend to a fresh room. Requires auth, an actual friendship, and
+    // an online recipient; the inviter's name comes from the verified token.
+    socket.on('friend:invite', async (payload: { toUid?: string; gameId?: string; idToken?: string | null }, cb?: (ack: Ack) => void) => {
       const user = await verifyIdToken(payload?.idToken);
+      if (!user) return cb?.({ ok: false, error: 'unauthorized' });
+      const toUid = String(payload?.toUid ?? '');
+      if (!toUid || toUid === user.uid) return cb?.({ ok: false, error: 'bad_request' });
+      if (!(await isFriend(user.uid, toUid))) return cb?.({ ok: false, error: 'not_friend' });
+      const targets = presence.socketsFor(toUid);
+      if (targets.length === 0) return cb?.({ ok: false, error: 'offline' });
+
+      const fromName = cleanName(user.name);
       const gameId = payload?.gameId === 'dama' ? 'dama' : 'tavla';
       const config = gameId === 'tavla' ? { mode: 'classic', targetPoints: 1 } : {};
       const room = rooms.create(gameId, config);
-      const r = rooms.join(room, { name: cleanName(payload?.name), uid: user?.uid ?? null, avatar: user?.picture ?? null, socketId: socket.id });
+      const r = rooms.join(room, { name: fromName, uid: user.uid, avatar: user.picture, socketId: socket.id });
       socket.join(room.id);
       broadcastRoom(io, room);
-      for (const sid of targets) io.to(sid).emit('friend:invited', { fromName: cleanName(payload?.name), roomId: room.id, gameId });
+      for (const sid of targets) io.to(sid).emit('friend:invited', { fromName, roomId: room.id, gameId });
       cb?.({ ok: true, roomId: room.id, token: 'seat' in r ? r.seat.token : undefined });
     });
 
