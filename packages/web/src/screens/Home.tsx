@@ -41,6 +41,9 @@ export function Home() {
           <p className="mx-auto mt-3 max-w-md text-white/60">
             Oda kur, linki paylaş, hemen oynamaya başla. Ücretsiz, reklamsız, üyelik gerekmez.
           </p>
+          <button className="btn-ghost mx-auto mt-4" onClick={() => navigate('/pratik')}>
+            🎓 Yeni misin? Bota karşı pratik yap & öğren
+          </button>
         </section>
 
         {accountsEnabled && !authUser && (

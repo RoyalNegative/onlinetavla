@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { roomIdFromPath, useRoute } from './router';
 import { Home } from './screens/Home';
+import { Practice } from './screens/Practice';
 import { Room } from './screens/Room';
 import { useStore } from './store';
 
@@ -18,7 +19,7 @@ export function App() {
 
   return (
     <>
-      {roomId ? <Room roomId={roomId} /> : <Home />}
+      {roomId ? <Room roomId={roomId} /> : path === '/pratik' ? <Practice /> : <Home />}
       {toast && <Toast text={toast} onDone={() => setToast(null)} />}
     </>
   );
