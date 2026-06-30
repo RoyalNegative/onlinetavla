@@ -15,8 +15,8 @@ export function Auth() {
 
   return (
     <div className="flex items-center gap-2">
-      <button className="btn-ghost px-3 py-2 text-sm" onClick={() => setModal('leaderboard')}>
-        🏆 Sıralama
+      <button className="btn-ghost px-2.5 py-2 text-sm" onClick={() => setModal('leaderboard')}>
+        🏆<span className="ml-1 hidden sm:inline">Sıralama</span>
       </button>
 
       {firebaseConfigured &&

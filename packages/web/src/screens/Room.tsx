@@ -32,7 +32,7 @@ export function Room({ roomId }: { roomId: string }) {
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1.5 text-xs text-white/50">
               <span className="h-2 w-2 rounded-full" style={{ background: connected ? '#34d399' : '#f87171' }} />
-              {connected ? 'bağlı' : 'bağlanıyor'}
+              <span className="hidden sm:inline">{connected ? 'bağlı' : 'bağlanıyor'}</span>
             </span>
             <button className="btn-ghost px-3 py-2 text-sm" onClick={() => navigate('/')}>
               Çık
@@ -44,7 +44,7 @@ export function Room({ roomId }: { roomId: string }) {
       {!inThisRoom ? (
         <div className="grid flex-1 place-items-center text-white/50">Odaya bağlanılıyor…</div>
       ) : (
-        <main className="grid flex-1 gap-4 px-3 pb-6 sm:px-6 lg:grid-cols-[1fr_340px]">
+        <main className="grid flex-1 items-start gap-3 px-2 pb-6 sm:gap-4 sm:px-6 md:grid-cols-[1fr_300px] lg:grid-cols-[1fr_340px]">
           <div className={`relative rounded-2xl transition-shadow ${yourTurn ? 'ring-2 ring-amber-glow/70 shadow-[0_0_30px_rgba(245,177,76,0.25)]' : ''}`}>
             <Board
               view={update.view}

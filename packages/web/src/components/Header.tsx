@@ -7,14 +7,14 @@ export function Header({ right }: { right?: ReactNode }) {
   const soundOn = useStore((s) => s.soundOn);
   const toggleSound = useStore((s) => s.toggleSound);
   return (
-    <header className="flex items-center justify-between px-4 py-3 sm:px-6">
-      <button onClick={() => navigate('/')} className="flex items-center gap-2 text-xl font-black tracking-tight">
+    <header className="flex flex-wrap items-center justify-between gap-2 px-3 py-3 sm:px-6">
+      <button onClick={() => navigate('/')} className="flex items-center gap-2 text-lg font-black tracking-tight sm:text-xl">
         <span className="text-2xl">🎲</span>
         <span>
           Tavla<span className="text-amber-glow">.</span>
         </span>
       </button>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         {right}
         <button
           onClick={toggleSound}
