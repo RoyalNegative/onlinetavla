@@ -10,15 +10,19 @@ kuruldu.
 
 ## Özellikler
 
-- **Gerçek-zamanlı 2 kişilik tavla** — zarları **sunucu** atar, her hamleyi
-  sunucu doğrular → hile yok.
-- **URL ile oda** — `…/r/<kod>` linkini paylaş, arkadaşın açınca oyun başlar.
-- **Klasik veya çift zarlı (doubling cube)** — oda kurulurken seçilir.
-- **Maç modu** — ilk N sayıya kadar; mars (×2) ve backgammon (×3) puanlanır.
-- **Sohbet + emoji**, **rövanş**, **yeniden bağlanma** (sayfayı yenilesen
-  yerine dönersin), **izleyici** desteği.
-- **Opsiyonel hesap** (Firebase): kalıcı profil, kazanma/kaybetme, kazanma yüzdesi,
-  seri, **Elo sıralaması** ve **maç geçmişi** — hepsi sunucuda tutulur, sahtelenemez.
+- **İki oyun: Tavla ve Dama** — aynı lobi/oda/sohbet altyapısını paylaşan,
+  oyundan bağımsız `GameModule` mimarisi. Yenisini eklemek = bir modül yazmak.
+- **Gerçek-zamanlı, otoriter sunucu** — zarları sunucu atar, her hamleyi
+  doğrular → hile yok. Siyah oyuncu için tahta otomatik çevrilir.
+- **URL ile oda** veya **🎯 online matchmaking** (rastgele rakip bul).
+- **Pratik modu** (`/pratik`) — bota karşı, sunucusuz, yeni öğrenenler için.
+- **Klasik / çift zarlı (cube)**, **maç modu** (ilk N; mars ×2, backgammon ×3).
+- **Sohbet + emoji**, **rövanş**, **yeniden bağlanma**, **izleyici**, taş kayma
+  ve zar animasyonu, ses efektleri, "sıra sende" bildirimi, mobil uyumlu.
+- **Opsiyonel hesap** (Firebase): kalıcı profil + handle, Elo, toplam mars,
+  kazanma %, seri, **sıralama**, **maç geçmişi**, **arkadaş listesi** (online
+  durumu + oyuna çağırma) ve **günlük turnuva** — hepsi sunucuda tutulur,
+  sahtelenemez. Hesap olmadan da her şey takma adla çalışır.
 
 ## Teknolojiler & barındırma
 
