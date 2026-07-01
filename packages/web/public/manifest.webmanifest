@@ -1,0 +1,21 @@
+{
+  "name": "OnlineTavla — ücretsiz online tavla & dama",
+  "short_name": "Tavla",
+  "description": "Ücretsiz, üyeliksiz online tavla. Oda kur, linki paylaş, arkadaşınla anında oyna.",
+  "lang": "tr-TR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1720",
+  "theme_color": "#0f1720",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

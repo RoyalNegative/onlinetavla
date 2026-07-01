@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#0f1720" />
 
+    <!-- Speed up first paint: warm up the Firebase/Google connections used at load. -->
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://www.googleapis.com" crossorigin />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
     <!-- Google Search Console site verification -->
     <meta name="google-site-verification" content="OS5MRDSKnRVGRykMyj2vbJQT-mLL4ZHUTo6PvZ8TJio" />
 
@@ -148,7 +153,8 @@
         </ul>
         <p style="color: #9ca3af;">
           Uygulama yükleniyor… JavaScript etkinse oyun birkaç saniye içinde açılır.
-          <a href="/pratik" style="color: #f5b942;">Bota karşı pratik yapmak için tıkla.</a>
+          <a href="/nasil-oynanir" style="color: #f5b942;">Tavla nasıl oynanır?</a> ·
+          <a href="/pratik" style="color: #f5b942;">Bota karşı pratik yap.</a>
         </p>
       </main>
     </div>

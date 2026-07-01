@@ -32,7 +32,9 @@ app.use('/api', accountsRouter());
 // Serve the built client in production (single origin).
 const hasBuild = existsSync(webDist);
 if (hasBuild) {
-  app.use(express.static(webDist));
+  // `extensions: ['html']` lets static SEO pages (e.g. public/nasil-oynanir.html)
+  // resolve at clean, extensionless URLs like /nasil-oynanir before the SPA fallback.
+  app.use(express.static(webDist, { extensions: ['html'] }));
   app.get('*', (_req, res) => res.sendFile(fileURLToPath(new URL('../../web/dist/index.html', import.meta.url))));
 } else {
   app.get('/', (_req, res) =>

@@ -152,6 +152,18 @@ export function Home() {
         </div>
 
         <FeatureRow />
+
+        <footer className="mt-10 border-t border-white/10 pt-6 text-center text-xs text-white/40">
+          <nav className="mb-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+            <a href="/nasil-oynanir" className="hover:text-amber-glow">
+              Tavla nasıl oynanır?
+            </a>
+            <a href="/pratik" className="hover:text-amber-glow">
+              Bota karşı pratik
+            </a>
+          </nav>
+          <p>Ücretsiz, üyeliksiz online tavla ve dama — OnlineTavla</p>
+        </footer>
       </main>
     </div>
   );

@@ -19,6 +19,7 @@ export function App() {
 
   const path = useRoute();
   const roomId = roomIdFromPath(path);
+  useDocumentTitle(path, roomId);
 
   return (
     <>
@@ -41,6 +42,28 @@ export function App() {
       {toast && <Toast text={toast} onDone={() => setToast(null)} />}
     </>
   );
+}
+
+// Per-route <title> + meta description. SPAs share one HTML shell, so we update
+// these on navigation for better browser UX, link sharing and SEO signals.
+function useDocumentTitle(path: string, roomId: string | null): void {
+  useEffect(() => {
+    let title: string;
+    let desc: string;
+    if (roomId) {
+      title = 'Tavla Odası — arkadaşınla oyna | OnlineTavla';
+      desc = 'Bu odaya katıl ve arkadaşınla ücretsiz online tavla oyna. Üyelik gerekmez.';
+    } else if (path === '/pratik') {
+      title = 'Tavla Pratik — bota karşı alıştırma | OnlineTavla';
+      desc = 'Bota karşı ücretsiz tavla pratiği yap, kuralları öğren. Sunucusuz, üyeliksiz.';
+    } else {
+      title = 'Online Tavla Oyna — Ücretsiz, Üyeliksiz, Arkadaşınla Anında | OnlineTavla';
+      desc =
+        'Ücretsiz online tavla oyna. Üyelik yok, reklam yok — oda kur, linki paylaş, arkadaşınla saniyeler içinde başla.';
+    }
+    document.title = title;
+    document.querySelector('meta[name="description"]')?.setAttribute('content', desc);
+  }, [path, roomId]);
 }
 
 function Toast({ text, onDone }: { text: string; onDone: () => void }) {
