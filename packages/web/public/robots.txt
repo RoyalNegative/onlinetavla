@@ -1,0 +1,8 @@
+# OnlineTavla — https://onlinetavla.onrender.com
+User-agent: *
+Allow: /
+
+# Ephemeral game rooms carry no indexable content — keep them out of the index.
+Disallow: /r/
+
+Sitemap: https://onlinetavla.onrender.com/sitemap.xml

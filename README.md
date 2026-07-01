@@ -78,6 +78,21 @@ Tek bir Node servisi yeterli. **Render / Railway / Fly** gibi ücretsiz katmanla
 → bu repoyu seç → deploy. (Ücretsiz katman bir süre sonra uykuya geçer; ilk
 istekte ~50 sn soğuk başlatma olur.)
 
+**Uyanık tutma (ücretsiz):** soğuk başlatma hem kullanıcıyı hem Googlebot'u
+vurur. Repoda `.github/workflows/keep-alive.yml` her 10 dakikada `/health`'e
+ping atıp servisi uyandırır. Daha güvenilir 5 dakikalık ping için ücretsiz bir
+**UptimeRobot** (veya cron-job.org) monitörü kur: tür `HTTP(s)`, URL
+`https://onlinetavla.onrender.com/health`, aralık `5 min`.
+
+### SEO
+
+`packages/web/index.html` başlık/description, Open Graph + Twitter kartları ve
+JSON-LD (`WebApplication`/`VideoGame` + `FAQPage`) içerir; `#root` içine ham
+HTML'de taranabilir bir landing metni gömülüdür (React yüklenince değişir).
+`packages/web/public/` altında `robots.txt`, `sitemap.xml` ve sosyal görsel
+(`og-image.svg`) vardır. Deploy sonrası siteyi **Google Search Console**'a
+**URL öneki** mülkü olarak ekle ve `sitemap.xml`'i gönder.
+
 ## Firebase (opsiyonel — hesaplar için)
 
 Hesap özellikleri olmadan da her şey çalışır. Açmak istersen:

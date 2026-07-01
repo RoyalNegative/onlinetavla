@@ -1,0 +1,28 @@
+# Keeps the free Render instance awake so visitors (and Googlebot) never hit the
+# ~50s cold start. Render spins a free service down after 15 min of inactivity;
+# a periodic request resets that timer.
+#
+# NOTE: GitHub's scheduled runs can be delayed several minutes under load, and
+# GitHub disables cron workflows after 60 days of repo inactivity. For a rock-solid
+# 5-minute ping, also set up a free UptimeRobot monitor on /health (see README).
+name: keep-alive
+
+on:
+  schedule:
+    - cron: '*/10 * * * *' # every 10 minutes
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /health (wake + keep warm)
+        run: |
+          # --max-time 90 tolerates a cold start so this request itself wakes it.
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 90 \
+            --retry 2 --retry-delay 10 \
+            https://onlinetavla.onrender.com/health || true)
+          echo "health responded: $code"
+          if [ "$code" != "200" ]; then
+            echo "::warning::keep-alive ping did not return 200 (got $code)"
+          fi
