@@ -2,6 +2,7 @@
 // connection, and the current room snapshot pushed by the server.
 
 import { create } from 'zustand';
+import { track } from './lib/analytics';
 import { fetchAccountsEnabled } from './lib/api';
 import { currentIdToken, watchAuth } from './lib/firebase';
 import { emit, socket } from './lib/socket';
@@ -114,6 +115,7 @@ export const useStore = create<Store>((set, get) => ({
 
   async findMatch(gameId) {
     set({ matchmaking: true });
+    track('match_search', { game: gameId });
     const idToken = await currentIdToken();
     const ack = await emit('matchmake', { gameId, name: get().displayName(), idToken });
     if (!ack.ok) set({ matchmaking: false, toast: 'Eşleşme başlatılamadı.' });
@@ -160,6 +162,7 @@ export const useStore = create<Store>((set, get) => ({
       return;
     }
     if (ack.token) localStorage.setItem(tokenKey(ack.roomId), ack.token);
+    track('room_created', { game: opts.gameId, mode: opts.mode, target: opts.targetPoints });
     navigate(`/r/${ack.roomId}`);
   },
 

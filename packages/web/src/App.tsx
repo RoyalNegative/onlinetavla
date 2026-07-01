@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { trackPageView } from './lib/analytics';
 import { roomIdFromPath, useRoute } from './router';
 import { Home } from './screens/Home';
 import { Practice } from './screens/Practice';
@@ -63,6 +64,7 @@ function useDocumentTitle(path: string, roomId: string | null): void {
     }
     document.title = title;
     document.querySelector('meta[name="description"]')?.setAttribute('content', desc);
+    trackPageView(path, title);
   }, [path, roomId]);
 }
 
