@@ -27,6 +27,7 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+        display: ['"Bricolage Grotesque"', 'Inter', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         glow: '0 0 0 3px rgba(245,177,76,0.45)',

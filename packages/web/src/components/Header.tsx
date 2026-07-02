@@ -8,7 +8,7 @@ export function Header({ right }: { right?: ReactNode }) {
   const toggleSound = useStore((s) => s.toggleSound);
   return (
     <header className="flex flex-wrap items-center justify-between gap-2 px-3 py-3 sm:px-6">
-      <button onClick={() => navigate('/')} className="flex items-center gap-2 text-lg font-black tracking-tight sm:text-xl">
+      <button onClick={() => navigate('/')} className="flex items-center gap-2 font-display text-lg font-extrabold tracking-tight sm:text-xl">
         <span className="text-2xl">🎲</span>
         <span>
           Tavla<span className="text-amber-glow">.</span>
