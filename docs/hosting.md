@@ -11,7 +11,7 @@ ilk ziyaretçi 30–60 sn bekliyor. Seçenekler (Temmuz 2026 fiyatları):
 
 ## Ücretsiz geçici çözüm: uptime ping
 
-- [UptimeRobot](https://uptimerobot.com) (ücretsiz) ile `https://onlinetavla.onrender.com/health`
+- [UptimeRobot](https://uptimerobot.com) (ücretsiz) ile `https://onlinetavla-asaby.com/health`
   adresine 5 dk'da bir HTTP isteği kur.
 - Free plan ayda 750 saat instans veriyor — tek servis 7/24 ayakta kalabilir (31 gün ≈ 744 saat).
 - Dezavantaj: garanti değil (Render bu kullanımı hedeflemiyor), free instans yavaş

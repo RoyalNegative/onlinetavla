@@ -6,7 +6,7 @@ sıralama kazanırsın; istemezsen takma adla oynarsın. Altyapı, ileride başk
 oyunların (okey, dama, satranç…) eklenebileceği şekilde **oyundan bağımsız**
 kuruldu.
 
-🌐 **Canlı:** <https://onlinetavla.onrender.com>
+🌐 **Canlı:** <https://onlinetavla-asaby.com>
 
 ## Özellikler
 
@@ -82,7 +82,7 @@ istekte ~50 sn soğuk başlatma olur.)
 vurur. Repoda `.github/workflows/keep-alive.yml` her 10 dakikada `/health`'e
 ping atıp servisi uyandırır. Daha güvenilir 5 dakikalık ping için ücretsiz bir
 **UptimeRobot** (veya cron-job.org) monitörü kur: tür `HTTP(s)`, URL
-`https://onlinetavla.onrender.com/health`, aralık `5 min`.
+`https://onlinetavla-asaby.com/health`, aralık `5 min`.
 
 ### SEO
 

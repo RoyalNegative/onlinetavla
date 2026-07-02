@@ -21,7 +21,7 @@ jobs:
           # --max-time 90 tolerates a cold start so this request itself wakes it.
           code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 90 \
             --retry 2 --retry-delay 10 \
-            https://onlinetavla.onrender.com/health || true)
+            https://onlinetavla-asaby.com/health || true)
           echo "health responded: $code"
           if [ "$code" != "200" ]; then
             echo "::warning::keep-alive ping did not return 200 (got $code)"
