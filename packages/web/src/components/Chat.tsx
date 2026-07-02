@@ -32,10 +32,12 @@ export function Chat({
 
   return (
     <div className="card flex min-h-0 flex-1 flex-col p-3">
+      {/* Fixed height: new messages scroll inside instead of growing the card
+          and pushing the emoji bar / input down. */}
       <div
         ref={scrollRef}
-        className="scroll-thin mb-2 flex-1 space-y-1.5 overflow-y-auto pr-1"
-        style={{ minHeight: 120, maxHeight: 320 }}
+        className="scroll-thin mb-2 space-y-1.5 overflow-y-auto pr-1"
+        style={{ height: 220 }}
       >
         {messages.length === 0 && <p className="px-1 text-xs text-white/30">Sohbet burada…</p>}
         {messages.map((m) =>
@@ -50,11 +52,12 @@ export function Chat({
         )}
       </div>
 
-      <div className="mb-2 flex flex-wrap gap-1">
+      {/* Single row: buttons share the width equally so all emojis always fit. */}
+      <div className="mb-2 flex gap-1">
         {EMOJIS.map((e) => (
           <button
             key={e}
-            className="rounded-lg bg-white/5 px-2 py-1 text-lg transition hover:bg-white/10"
+            className="min-w-0 flex-1 rounded-lg bg-white/5 py-1 text-center text-lg transition hover:bg-white/10"
             onClick={() => onSend(e, 'emoji')}
           >
             {e}
