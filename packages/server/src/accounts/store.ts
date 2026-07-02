@@ -218,7 +218,8 @@ function dayStr(ts: number): string {
 
 export function currentTournament(gameId: string, ts = Date.now()): TournamentMeta {
   const date = dayStr(ts);
-  const name = `${gameId === 'dama' ? 'Dama' : 'Tavla'} Günlük Turnuva · ${date}`;
+  const pretty = new Date(ts).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
+  const name = `${gameId === 'dama' ? 'Dama' : 'Tavla'} Günlük Turnuva · ${pretty}`;
   return { id: `${gameId}-${date}`, gameId, date, name };
 }
 

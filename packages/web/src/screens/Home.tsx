@@ -159,16 +159,20 @@ export function Home() {
         </div>
 
         <footer className="mt-12 border-t border-white/10 pt-5 text-center text-xs leading-relaxed text-white/35">
-          <p>🎲 Zarları sunucu atar, hamleler doğrulanır — hile yok · 💬 Oyun içi sohbet & emoji · 🔁 Tek tıkla rövanş</p>
-          <nav className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
-            <a href="/nasil-oynanir" className="hover:text-amber-glow">
+          <ul className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5">
+            <li className="whitespace-nowrap">🎲 Zarları sunucu atar — hile yok</li>
+            <li className="whitespace-nowrap">💬 Oyun içi sohbet & emoji</li>
+            <li className="whitespace-nowrap">🔁 Tek tıkla rövanş</li>
+          </ul>
+          <nav className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-1">
+            <a href="/nasil-oynanir" className="whitespace-nowrap hover:text-amber-glow">
               Tavla nasıl oynanır?
             </a>
-            <a href="/pratik" className="hover:text-amber-glow">
+            <a href="/pratik" className="whitespace-nowrap hover:text-amber-glow">
               Bota karşı pratik
             </a>
           </nav>
-          <p className="mt-2">Ücretsiz, üyeliksiz online tavla ve dama — OnlineTavla</p>
+          <p className="mt-3">Ücretsiz, üyeliksiz online tavla ve dama — OnlineTavla</p>
         </footer>
       </main>
     </div>

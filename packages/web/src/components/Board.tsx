@@ -111,18 +111,19 @@ export function Board({ view, interactive, onAction }: Props) {
     setSelected(null);
   }
 
-  // Forced moves play themselves: a single legal move, or the last checker
-  // bearing off where every option ends the game identically. Saves the
+  // Forced moves play themselves: a single legal move, or bear-off turns where
+  // every legal option takes a checker off — no within-board alternative means
+  // there is no real decision left, so collect automatically. Saves the
   // pointless taps at the end of a race.
   const autoMove = useMemo(() => {
     if (!interactive || legalMoves.length === 0) return null;
     if (legalMoves.length === 1) return legalMoves[0];
-    const first = legalMoves[0];
-    const allSame = legalMoves.every((m) => m.from === first.from && m.to === first.to);
-    const onBoard = 15 - game.off[youColor];
-    if (allSame && first.to === 'off' && onBoard === 1) return first;
+    if (legalMoves.every((m) => m.to === 'off')) {
+      const exact = legalMoves.find((m) => m.from === (youColor === 'white' ? m.die - 1 : 24 - m.die));
+      return exact ?? legalMoves[0];
+    }
     return null;
-  }, [interactive, legalMoves, game.off, youColor]);
+  }, [interactive, legalMoves, youColor]);
 
   useEffect(() => {
     if (!autoMove) return;
