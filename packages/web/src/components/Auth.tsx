@@ -8,8 +8,23 @@ import { AccountModal } from './AccountModal';
 export function Auth() {
   const authUser = useStore((s) => s.authUser);
   const accountsEnabled = useStore((s) => s.accountsEnabled);
+  const setToast = useStore((s) => s.setToast);
   const [modal, setModal] = useState<null | 'leaderboard' | 'profile'>(null);
   const [menu, setMenu] = useState(false);
+
+  async function signIn() {
+    try {
+      await signInWithGoogle();
+    } catch (e) {
+      const code = (e as { code?: string }).code ?? '';
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return;
+      setToast(
+        code === 'auth/unauthorized-domain'
+          ? 'Giriş şu an bu adresten yapılamıyor (domain izni eksik).'
+          : 'Giriş yapılamadı, tekrar dene.',
+      );
+    }
+  }
 
   if (!accountsEnabled) return null;
 
@@ -59,7 +74,7 @@ export function Auth() {
           <button
             className="btn-primary px-3 py-2 text-sm"
             title="İstatistik, sıralama ve profil için"
-            onClick={() => void signInWithGoogle()}
+            onClick={() => void signIn()}
           >
             Giriş yap
           </button>
