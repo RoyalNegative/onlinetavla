@@ -266,6 +266,28 @@ export function Board({ view, interactive, onAction }: Props) {
 
       <MoveAnimation game={game} coordOf={coordOf} />
       <DiceOverlay view={view} />
+      <RollOverlay view={view} onAction={onAction} />
+    </div>
+  );
+}
+
+// The primary action, on the board itself: no scrolling down to a side panel to
+// roll — especially important on phones where the panel is below the fold.
+function RollOverlay({ view, onAction }: { view: TavlaView; onAction: (a: Action) => void }) {
+  const { game, youAre } = view;
+  if (!youAre) return null;
+  const canRoll =
+    (game.phase === 'toRoll' && view.yourTurn) ||
+    (game.phase === 'opening' && game.openingRolls[youAre] === null);
+  if (!canRoll) return null;
+  return (
+    <div className="absolute inset-0 z-10 grid place-items-center">
+      <button
+        className="btn-primary animate-fade-up px-6 py-3 text-lg shadow-2xl"
+        onClick={() => onAction({ type: 'roll' })}
+      >
+        🎲 Zar at
+      </button>
     </div>
   );
 }
@@ -343,8 +365,9 @@ function DiceOverlay({ view }: { view: TavlaView }) {
   const xPct = (704 / VB_W) * 100;
   const yPct = 50;
   const wrap = (children: ReactNode, key: string) => (
-    <div key={key} className="absolute flex animate-fade-up gap-2" style={{ left: `${xPct}%`, top: `${yPct}%`, transform: 'translate(-50%,-50%)' }}>
-      {children}
+    <div key={key} className="pointer-events-none absolute animate-fade-up" style={{ left: `${xPct}%`, top: `${yPct}%`, transform: 'translate(-50%,-50%)' }}>
+      {/* scale down with the board so dice don't dwarf a phone-sized board */}
+      <div className="flex gap-2 scale-[0.6] min-[480px]:scale-75 sm:scale-100">{children}</div>
     </div>
   );
 

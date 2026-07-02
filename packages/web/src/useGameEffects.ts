@@ -71,6 +71,7 @@ export function useGameEffects(update: RoomUpdate | null): void {
 
     if (yourTurn && !p.yourTurn) {
       sfx.turn();
+      navigator.vibrate?.(60); // Android haptic nudge; iOS ignores it
       if (document.hidden) startFlash();
     }
     if (!document.hidden) stopFlash();

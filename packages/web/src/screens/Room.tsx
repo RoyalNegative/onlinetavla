@@ -57,7 +57,11 @@ export function Room({ roomId }: { roomId: string }) {
         <div className="grid flex-1 place-items-center text-white/50">Odaya bağlanılıyor…</div>
       ) : (
         <main className="grid flex-1 items-start gap-3 px-2 pb-6 sm:gap-4 sm:px-6 md:grid-cols-[1fr_300px] lg:grid-cols-[1fr_340px]">
-          <div className={`relative rounded-2xl transition-shadow ${yourTurn ? 'ring-2 ring-amber-glow/70 shadow-[0_0_30px_rgba(245,177,76,0.25)]' : ''}`}>
+          <div
+            className={`relative mx-auto w-full rounded-2xl transition-shadow ${yourTurn ? 'ring-2 ring-amber-glow/70 shadow-[0_0_30px_rgba(245,177,76,0.25)]' : ''}`}
+            // Cap the board so it fits the viewport on landscape phones.
+            style={{ maxWidth: isDama ? 'calc(100dvh - 150px)' : 'calc((100dvh - 150px) * 5 / 3)' }}
+          >
             {isDama ? (
               <DamaBoard view={dview} interactive={dview.yourTurn && dview.legalMoves.length > 0} onAction={sendAction} />
             ) : (
@@ -83,7 +87,8 @@ export function Room({ roomId }: { roomId: string }) {
             ) : (
               <>
                 <PlayerPanel view={tview} players={update.room.players} youSeat={update.you.seat} />
-                <div className="card p-4">
+                {/* On phones the action bar jumps above the player panel — it's what you reach for. */}
+                <div className="card -order-1 p-4 md:order-none">
                   <Controls view={tview} onAction={sendAction} onRematch={voteRematch} rematch={update.room.rematch} />
                 </div>
               </>
@@ -123,12 +128,28 @@ function NameGate({ onSubmit }: { onSubmit: (n: string) => void }) {
   );
 }
 
+// Native share sheet on phones (WhatsApp/Telegram in one tap), clipboard elsewhere.
+// Returns true when the link was copied (caller shows "copied" feedback).
+async function shareInviteLink(url: string): Promise<boolean> {
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'OnlineTavla', text: 'Gel tavla oynayalım! 🎲', url });
+      return false;
+    } catch {
+      return false; // user closed the sheet — nothing to confirm
+    }
+  }
+  await navigator.clipboard.writeText(url);
+  return true;
+}
+
 function InvitePanel({ roomId }: { roomId: string }) {
   const url = `${window.location.origin}/r/${roomId}`;
   const [copied, setCopied] = useState(false);
 
-  function copy() {
-    void navigator.clipboard.writeText(url).then(() => {
+  function share() {
+    void shareInviteLink(url).then((didCopy) => {
+      if (!didCopy) return;
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     });
@@ -138,9 +159,9 @@ function InvitePanel({ roomId }: { roomId: string }) {
     <div className="card space-y-2 p-4">
       <p className="text-sm font-semibold">Arkadaşını davet et</p>
       <div className="flex gap-2">
-        <input readOnly value={url} className="input py-2 text-xs" onFocus={(e) => e.target.select()} />
-        <button className="btn-primary px-3" onClick={copy}>
-          {copied ? '✓' : 'Kopyala'}
+        <input readOnly value={url} className="input py-2 text-base sm:text-sm" onFocus={(e) => e.target.select()} />
+        <button className="btn-primary px-3" onClick={share}>
+          {copied ? '✓' : 'Paylaş'}
         </button>
       </div>
       <p className="text-xs text-white/40">Bu linki gönder; karşı taraf açınca oyun başlar.</p>
@@ -152,7 +173,7 @@ function WaitingOverlay({ roomId }: { roomId: string }) {
   const url = `${window.location.origin}/r/${roomId}`;
   const [copied, setCopied] = useState(false);
   return (
-    <div className="absolute inset-0 grid place-items-center rounded-2xl bg-black/55 backdrop-blur-sm">
+    <div className="absolute inset-0 z-20 grid place-items-center rounded-2xl bg-black/55 backdrop-blur-sm">
       <div className="card max-w-xs p-6 text-center">
         <div className="mb-2 text-3xl">⏳</div>
         <p className="font-semibold">Rakip bekleniyor…</p>
@@ -160,13 +181,14 @@ function WaitingOverlay({ roomId }: { roomId: string }) {
         <button
           className="btn-primary mt-3 w-full"
           onClick={() =>
-            void navigator.clipboard.writeText(url).then(() => {
+            void shareInviteLink(url).then((didCopy) => {
+              if (!didCopy) return;
               setCopied(true);
               setTimeout(() => setCopied(false), 1500);
             })
           }
         >
-          {copied ? '✓ Kopyalandı' : 'Davet linkini kopyala'}
+          {copied ? '✓ Kopyalandı' : 'Davet linkini paylaş'}
         </button>
       </div>
     </div>

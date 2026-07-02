@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { AccountModal } from '../components/AccountModal';
 import { Header } from '../components/Header';
-import { fetchTournament, joinTournament, type Tournament } from '../lib/api';
+import { fetchFriends, fetchTournament, joinTournament, type Friend, type Tournament } from '../lib/api';
 import { navigate } from '../router';
 import { useStore } from '../store';
 
@@ -58,6 +59,8 @@ export function Home() {
         )}
 
         {accountsEnabled && <TournamentBanner game={game} authed={!!authUser} />}
+
+        {accountsEnabled && authUser && <FriendsStrip game={game} />}
 
         <div className="mb-5">
           <label className="mb-1 block text-sm text-white/60">Takma adın</label>
@@ -178,6 +181,61 @@ function Toggle({ active, onClick, title, sub }: { active: boolean; onClick: () 
       <div className="font-bold leading-tight">{title}</div>
       <div className={`text-[10px] ${active ? 'text-ink-900/70' : 'text-white/40'}`}>{sub}</div>
     </button>
+  );
+}
+
+// Online friends, one tap from the home screen — no digging through the modal.
+// Refreshes presence every 30s while visible.
+function FriendsStrip({ game }: { game: 'tavla' | 'dama' }) {
+  const inviteFriend = useStore((s) => s.inviteFriend);
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [modal, setModal] = useState(false);
+  const [inviting, setInviting] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = () => void fetchFriends().then(setFriends);
+    load();
+    const t = setInterval(load, 30_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const online = friends.filter((f) => f.online);
+
+  return (
+    <div className="card mb-6 p-4">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-sm font-semibold">👥 Arkadaşların {online.length > 0 && <span className="text-emerald-400">· {online.length} çevrimiçi</span>}</p>
+        <button className="text-xs text-amber-glow hover:underline" onClick={() => setModal(true)}>
+          {friends.length === 0 ? '+ Arkadaş ekle' : 'Tümü / ekle'}
+        </button>
+      </div>
+      {friends.length === 0 ? (
+        <p className="text-xs text-white/40">Arkadaş ekle; çevrimiçi olunca buradan tek dokunuşla oyuna çağır.</p>
+      ) : (
+        <div className="scroll-thin flex gap-2 overflow-x-auto pb-1">
+          {[...online, ...friends.filter((f) => !f.online)].map((f) => (
+            <div key={f.uid} className="flex shrink-0 items-center gap-2 rounded-xl bg-white/5 px-3 py-2">
+              <span className="h-2.5 w-2.5 rounded-full" style={{ background: f.online ? '#34d399' : '#6b7280' }} />
+              <span className="max-w-[110px] truncate text-sm font-semibold">{f.handle}</span>
+              {f.online && (
+                <button
+                  className="rounded-lg bg-amber-glow px-2.5 py-1.5 text-xs font-bold text-ink-900 disabled:opacity-40"
+                  disabled={inviting === f.uid}
+                  onClick={async () => {
+                    setInviting(f.uid);
+                    await inviteFriend(f.uid, game);
+                    setInviting(null);
+                  }}
+                >
+                  {inviting === f.uid ? '…' : 'Çağır'}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      {modal && <AccountModal initialTab="friends" onClose={() => setModal(false)} />}
+    </div>
   );
 }
 

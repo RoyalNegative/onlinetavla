@@ -50,7 +50,10 @@ function PracticeGame({
 
   return (
     <main className="grid flex-1 items-start gap-3 px-2 pb-6 sm:gap-4 sm:px-6 md:grid-cols-[1fr_300px] lg:grid-cols-[1fr_340px]">
-      <div className={`relative rounded-2xl transition-shadow ${yourTurn ? 'ring-2 ring-amber-glow/70 shadow-[0_0_30px_rgba(245,177,76,0.25)]' : ''}`}>
+      <div
+        className={`relative mx-auto w-full rounded-2xl transition-shadow ${yourTurn ? 'ring-2 ring-amber-glow/70 shadow-[0_0_30px_rgba(245,177,76,0.25)]' : ''}`}
+        style={{ maxWidth: isDama ? 'calc(100dvh - 150px)' : 'calc((100dvh - 150px) * 5 / 3)' }}
+      >
         {isDama ? (
           <DamaBoard view={dview} interactive={dview.yourTurn && dview.legalMoves.length > 0} onAction={act} />
         ) : (

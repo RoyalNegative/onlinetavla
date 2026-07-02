@@ -6,7 +6,7 @@ import { track } from './lib/analytics';
 import { fetchAccountsEnabled } from './lib/api';
 import { currentIdToken, watchAuth } from './lib/firebase';
 import { emit, socket } from './lib/socket';
-import { setSoundEnabled, soundEnabled } from './lib/sound';
+import { setSoundEnabled, sfx, soundEnabled } from './lib/sound';
 import type { RoomUpdate } from './protocol';
 import { navigate, roomIdFromPath } from './router';
 
@@ -98,7 +98,11 @@ export const useStore = create<Store>((set, get) => ({
       set({ matchmaking: false });
       navigate(`/r/${p.roomId}`);
     });
-    socket.on('friend:invited', (p: { fromName: string; roomId: string; gameId: string }) => set({ invite: p }));
+    socket.on('friend:invited', (p: { fromName: string; roomId: string; gameId: string }) => {
+      sfx.turn();
+      navigator.vibrate?.([80, 60, 80]);
+      set({ invite: p });
+    });
 
     watchAuth((user) => {
       const authUser: AuthUser | null = user
