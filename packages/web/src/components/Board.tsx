@@ -110,6 +110,29 @@ export function Board({ view, interactive, onAction }: Props) {
     onAction({ type: 'move', move });
     setSelected(null);
   }
+
+  // Forced moves play themselves: a single legal move, or the last checker
+  // bearing off where every option ends the game identically. Saves the
+  // pointless taps at the end of a race.
+  const autoMove = useMemo(() => {
+    if (!interactive || legalMoves.length === 0) return null;
+    if (legalMoves.length === 1) return legalMoves[0];
+    const first = legalMoves[0];
+    const allSame = legalMoves.every((m) => m.from === first.from && m.to === first.to);
+    const onBoard = 15 - game.off[youColor];
+    if (allSame && first.to === 'off' && onBoard === 1) return first;
+    return null;
+  }, [interactive, legalMoves, game.off, youColor]);
+
+  useEffect(() => {
+    if (!autoMove) return;
+    const t = setTimeout(() => {
+      onAction({ type: 'move', move: autoMove });
+      setSelected(null);
+    }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoMove]);
   function clickSource(from: number | 'bar') {
     const srcMoves = legalMoves.filter((m) => m.from === from);
     if (srcMoves.length === 1) play(srcMoves[0]);
@@ -188,11 +211,6 @@ export function Board({ view, interactive, onAction }: Props) {
           const isSel = selected === idx;
           return (
             <g key={`c${idx}`}>
-              {hittable.has(idx) && (
-                <circle cx={x} cy={checkerY(row, 0)} r={CHK_R + 4} fill="none" stroke="#f87171" strokeWidth="3">
-                  <animate attributeName="opacity" values="0.35;1;0.35" dur="0.9s" repeatCount="indefinite" />
-                </circle>
-              )}
               {Array.from({ length: shown }, (_, i) => (
                 <circle
                   key={i}
@@ -209,6 +227,7 @@ export function Board({ view, interactive, onAction }: Props) {
                   {count}
                 </text>
               )}
+              {hittable.has(idx) && <HitMark x={x} y={checkerY(row, 0)} />}
             </g>
           );
         })}
@@ -268,6 +287,27 @@ export function Board({ view, interactive, onAction }: Props) {
       <DiceOverlay view={view} />
       <RollOverlay view={view} onAction={onAction} />
     </div>
+  );
+}
+
+// "You can hit this blot": a pulsing ✕ drawn over the checker itself with a
+// dark halo, so it stays visible on both light points and dark checkers.
+export function HitMark({ x, y, r = 25 }: { x: number; y: number; r?: number }) {
+  const a = r * 0.44;
+  return (
+    <g pointerEvents="none">
+      <circle cx={x} cy={y} r={r + 4} fill="none" stroke="#0c1118" strokeWidth="6" opacity="0.55" />
+      <circle cx={x} cy={y} r={r + 4} fill="none" stroke="#ef4444" strokeWidth="3" />
+      <g stroke="#0c1118" strokeWidth="8" strokeLinecap="round" opacity="0.55">
+        <line x1={x - a} y1={y - a} x2={x + a} y2={y + a} />
+        <line x1={x - a} y1={y + a} x2={x + a} y2={y - a} />
+      </g>
+      <g stroke="#ef4444" strokeWidth="4.5" strokeLinecap="round">
+        <line x1={x - a} y1={y - a} x2={x + a} y2={y + a} />
+        <line x1={x - a} y1={y + a} x2={x + a} y2={y - a} />
+      </g>
+      <animate attributeName="opacity" values="0.5;1;0.5" dur="0.9s" repeatCount="indefinite" />
+    </g>
   );
 }
 

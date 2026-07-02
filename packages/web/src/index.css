@@ -21,6 +21,17 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Chrome autofill paints inputs pale yellow with black text — force our dark
+   theme so a filled input doesn't look broken. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #fff;
+  -webkit-box-shadow: 0 0 0 1000px #10192b inset;
+  caret-color: #fff;
+  transition: background-color 999999s ease-in-out 0s;
+}
+
 /* Thin scrollbars in chat etc. */
 .scroll-thin::-webkit-scrollbar {
   width: 6px;

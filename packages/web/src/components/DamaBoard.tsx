@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { DamaMove, DamaView } from '@tavla/engine';
+import { HitMark } from './Board';
 
 const VB = 800;
 const CELL = VB / 8;
@@ -114,17 +115,13 @@ export function DamaBoard({ view, interactive, onAction }: Props) {
           const king = Math.abs(v) === 2;
           return (
             <g key={`p${i}`}>
-              {capturable.has(i) && (
-                <circle cx={cx} cy={cy} r={R + 5} fill="none" stroke="#f87171" strokeWidth="4">
-                  <animate attributeName="opacity" values="0.35;1;0.35" dur="0.9s" repeatCount="indefinite" />
-                </circle>
-              )}
               <circle cx={cx} cy={cy} r={R} fill={white ? WHITE_BG : BLACK_BG} stroke="rgba(0,0,0,0.4)" strokeWidth="2" />
               {king && (
                 <text x={cx} y={cy + 9} textAnchor="middle" fontSize="30" fill={white ? '#7a5a1e' : '#f5d98a'}>
                   ★
                 </text>
               )}
+              {capturable.has(i) && <HitMark x={cx} y={cy} r={R} />}
             </g>
           );
         })}
