@@ -4,6 +4,7 @@
 // accounts are disabled.
 
 import { FieldValue } from 'firebase-admin/firestore';
+import { games } from '@tavla/engine';
 import { accountsEnabled, db } from './firebase';
 
 export interface UserStats {
@@ -219,7 +220,7 @@ function dayStr(ts: number): string {
 export function currentTournament(gameId: string, ts = Date.now()): TournamentMeta {
   const date = dayStr(ts);
   const pretty = new Date(ts).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
-  const name = `${gameId === 'dama' ? 'Dama' : 'Tavla'} Günlük Turnuva · ${pretty}`;
+  const name = `${games[gameId]?.name ?? 'Tavla'} Günlük Turnuva · ${pretty}`;
   return { id: `${gameId}-${date}`, gameId, date, name };
 }
 
