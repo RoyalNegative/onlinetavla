@@ -1,9 +1,9 @@
 // Side-effects driven by the live view: sound effects and a tab-title flash
-// when it becomes your turn while the tab is in the background. Works for both
-// games (tavla's dice/moves and dama's moves/captures).
+// when it becomes your turn while the tab is in the background. Works for all
+// games (tavla's dice/moves, dama's moves/captures, amiral's shots).
 
 import { useEffect, useRef } from 'react';
-import type { DamaView, TavlaView } from '@tavla/engine';
+import type { BattleshipView, DamaView, TavlaView } from '@tavla/engine';
 import { sfx } from './lib/sound';
 import type { RoomUpdate } from './protocol';
 
@@ -38,7 +38,19 @@ export function useGameEffects(update: RoomUpdate | null): void {
     let barTotal = p.barTotal;
     let over = p.over;
 
-    if (update.room.gameId === 'dama') {
+    if (update.room.gameId === 'amiral') {
+      const v = update.view as BattleshipView;
+      moveSeq = v.moveSeq;
+      if (moveSeq !== p.moveSeq && v.lastShot) {
+        if (v.lastShot.result === 'miss') sfx.move();
+        else sfx.hit();
+      }
+      over = v.winner !== null;
+      if (over && !p.over && you) {
+        if (v.winner === you) sfx.win();
+        else sfx.lose();
+      }
+    } else if (update.room.gameId === 'dama') {
       const v = update.view as DamaView;
       moveSeq = v.moveSeq;
       if (moveSeq !== p.moveSeq) {

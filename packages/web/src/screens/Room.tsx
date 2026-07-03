@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import type { DamaView, TavlaView } from '@tavla/engine';
+import type { BattleshipView, DamaView, TavlaView } from '@tavla/engine';
+import { BattleshipBoard } from '../components/BattleshipBoard';
+import { BattleshipPanel } from '../components/BattleshipPanel';
 import { Board } from '../components/Board';
 import { Chat } from '../components/Chat';
 import { Controls } from '../components/Controls';
@@ -31,9 +33,11 @@ export function Room({ roomId }: { roomId: string }) {
   const inThisRoom = update?.room.roomId === roomId;
   const yourTurn = !!update?.view.yourTurn;
   const isDama = update?.room.gameId === 'dama';
+  const isAmiral = update?.room.gameId === 'amiral';
   // Only read inside the inThisRoom branch, where `update` is non-null.
   const tview = update?.view as TavlaView;
   const dview = update?.view as DamaView;
+  const bview = update?.view as BattleshipView;
 
   return (
     <div className="mx-auto flex min-h-full max-w-6xl flex-col">
@@ -60,9 +64,11 @@ export function Room({ roomId }: { roomId: string }) {
           <div
             className={`relative mx-auto w-full rounded-2xl transition-shadow ${yourTurn ? 'ring-2 ring-amber-glow/70 shadow-[0_0_30px_rgba(245,177,76,0.25)]' : ''}`}
             // Cap the board so it fits the viewport on landscape phones.
-            style={{ maxWidth: isDama ? 'calc(100dvh - 150px)' : 'calc((100dvh - 150px) * 5 / 3)' }}
+            style={{ maxWidth: isAmiral ? '900px' : isDama ? 'calc(100dvh - 150px)' : 'calc((100dvh - 150px) * 5 / 3)' }}
           >
-            {isDama ? (
+            {isAmiral ? (
+              <BattleshipBoard view={bview} onAction={sendAction} />
+            ) : isDama ? (
               <DamaBoard view={dview} interactive={dview.yourTurn && dview.legalMoves.length > 0} onAction={sendAction} />
             ) : (
               <Board
@@ -75,7 +81,16 @@ export function Room({ roomId }: { roomId: string }) {
           </div>
 
           <aside className="flex min-h-0 flex-col gap-4">
-            {isDama ? (
+            {isAmiral ? (
+              <BattleshipPanel
+                view={bview}
+                players={update.room.players}
+                youSeat={update.you.seat}
+                onResign={() => sendAction({ type: 'resign' })}
+                onRematch={voteRematch}
+                rematch={update.room.rematch}
+              />
+            ) : isDama ? (
               <DamaPanel
                 view={dview}
                 players={update.room.players}

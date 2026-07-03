@@ -2,6 +2,7 @@
 // connection, and the current room snapshot pushed by the server.
 
 import { create } from 'zustand';
+import type { GameId } from '@tavla/engine';
 import { track } from './lib/analytics';
 import { fetchAccountsEnabled } from './lib/api';
 import { currentIdToken, watchAuth } from './lib/firebase';
@@ -32,12 +33,12 @@ interface Store {
   toggleSound: () => void;
   displayName: () => string;
   init: () => void;
-  findMatch: (gameId: 'tavla' | 'dama') => Promise<void>;
+  findMatch: (gameId: GameId) => Promise<void>;
   cancelMatch: () => void;
-  inviteFriend: (toUid: string, gameId: 'tavla' | 'dama') => Promise<void>;
+  inviteFriend: (toUid: string, gameId: GameId) => Promise<void>;
   acceptInvite: () => void;
   dismissInvite: () => void;
-  createRoom: (opts: { gameId: 'tavla' | 'dama'; mode?: 'classic' | 'backgammon'; targetPoints?: number }) => Promise<void>;
+  createRoom: (opts: { gameId: GameId; mode?: 'classic' | 'backgammon'; targetPoints?: number }) => Promise<void>;
   joinRoom: (roomId: string) => Promise<void>;
   sendAction: (action: unknown) => Promise<void>;
   sendChat: (text: string, kind?: 'chat' | 'emoji') => void;

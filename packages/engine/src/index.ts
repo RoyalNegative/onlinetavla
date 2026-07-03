@@ -46,7 +46,25 @@ export { tavlaModule, seatToColor } from './module';
 export type { GameModule, TavlaView } from './module';
 export { damaModule, createInitialDama, generateMoves } from './dama';
 export type { DamaState, DamaMove, DamaView, DamaAction } from './dama';
+export {
+  battleshipModule,
+  createInitialBattleship,
+  randomFleet,
+  validateFleet,
+  shipCells,
+  FLEET,
+  BATTLESHIP_SIZE,
+} from './battleship';
+export type {
+  BattleshipState,
+  BattleshipAction,
+  BattleshipView,
+  BattleshipBoardView,
+  ShipPlacement,
+  ShotResult,
+} from './battleship';
 
+import { battleshipModule } from './battleship';
 import { damaModule } from './dama';
 import { tavlaModule } from './module';
 
@@ -54,6 +72,7 @@ import { tavlaModule } from './module';
 export const games: Record<string, import('./module').GameModule<any, any, any, any>> = {
   tavla: tavlaModule,
   dama: damaModule,
+  amiral: battleshipModule,
 };
 
-export type GameId = 'tavla' | 'dama';
+export type GameId = 'tavla' | 'dama' | 'amiral';

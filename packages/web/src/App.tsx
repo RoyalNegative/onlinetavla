@@ -28,7 +28,7 @@ export function App() {
       {invite && (
         <div className="fixed left-1/2 top-4 z-50 w-[min(92vw,360px)] -translate-x-1/2 animate-fade-up rounded-2xl border border-amber-glow/40 bg-ink-700 p-4 shadow-2xl">
           <p className="text-sm">
-            🎮 <b>{invite.fromName}</b> seni {invite.gameId === 'dama' ? 'dama' : 'tavla'} oyununa çağırdı.
+            🎮 <b>{invite.fromName}</b> seni {invite.gameId === 'dama' ? 'dama' : invite.gameId === 'amiral' ? 'amiral battı' : 'tavla'} oyununa çağırdı.
           </p>
           <div className="mt-3 flex gap-2">
             <button className="btn-primary flex-1 py-2" onClick={acceptInvite}>

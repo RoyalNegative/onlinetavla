@@ -112,12 +112,12 @@ export interface Tournament {
   joined: boolean;
 }
 
-export async function fetchTournament(gameId: 'tavla' | 'dama'): Promise<Tournament> {
+export async function fetchTournament(gameId: string): Promise<Tournament> {
   const res = await fetch(`/api/tournaments?gameId=${gameId}`, { headers: await authHeaders() });
   return (await res.json()) as Tournament;
 }
 
-export async function joinTournament(gameId: 'tavla' | 'dama'): Promise<boolean> {
+export async function joinTournament(gameId: string): Promise<boolean> {
   const res = await fetch('/api/tournaments/join', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },

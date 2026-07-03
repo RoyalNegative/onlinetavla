@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { GameId } from '@tavla/engine';
 import { AccountModal } from '../components/AccountModal';
 import { Die } from '../components/Die';
 import { Header } from '../components/Header';
@@ -7,6 +8,28 @@ import { navigate } from '../router';
 import { useStore } from '../store';
 
 const TARGETS = [1, 3, 5, 7];
+
+// The hub's game catalog — adding a game here (plus its GameModule) is all the
+// home screen needs.
+const GAMES: { id: GameId; icon: string; title: string; sub: string; hero: string; how: string }[] = [
+  { id: 'tavla', icon: '🎲', title: 'Tavla', sub: 'backgammon', hero: 'tavla', how: '' },
+  {
+    id: 'dama',
+    icon: '⛀',
+    title: 'Dama',
+    sub: 'Türk daması',
+    hero: 'dama',
+    how: 'Taşlar ileri ve yana gider, yeme zorunludur. Son sıraya ulaşan taş dama olur.',
+  },
+  {
+    id: 'amiral',
+    icon: '🚢',
+    title: 'Amiral Battı',
+    sub: 'deniz savaşı',
+    hero: 'amiral battı',
+    how: 'Filonu gizlice yerleştir, sırayla ateş et. İsabette bir atış daha kazanırsın; tüm filoyu batıran kazanır.',
+  },
+];
 
 export function Home() {
   const nickname = useStore((s) => s.nickname);
@@ -19,8 +42,9 @@ export function Home() {
   const cancelMatch = useStore((s) => s.cancelMatch);
   const hasName = nickname.trim().length > 0;
 
-  const [game, setGame] = useState<'tavla' | 'dama'>('tavla');
+  const [game, setGame] = useState<GameId>('tavla');
   const [mode, setMode] = useState<'classic' | 'backgammon'>('classic');
+  const meta = GAMES.find((g) => g.id === game)!;
   const [target, setTarget] = useState(5);
   const [joinCode, setJoinCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -48,10 +72,10 @@ export function Home() {
             <div className="translate-y-0.5 rotate-6"><Die value={3} size={32} /></div>
           </div>
           <h1 className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl">
-            Arkadaşınla <span className="text-amber-glow">tavla</span>
+            Arkadaşınla <span className="text-amber-glow">{meta.hero}</span>
           </h1>
           <p className="mx-auto mt-3 max-w-md text-white/60">
-            Oda kur, linki paylaş, saniyeler içinde oyna. Ücretsiz, reklamsız, üyelik gerekmez.
+            Oyununu seç, oda kur, linki paylaş — saniyeler içinde oyna. Ücretsiz, reklamsız, üyelik gerekmez.
           </p>
         </section>
 
@@ -73,15 +97,27 @@ export function Home() {
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <span className="mb-1.5 block text-sm font-semibold text-white/70">Oyun</span>
-              <div className="grid grid-cols-2 gap-2">
-                <Toggle active={game === 'tavla'} onClick={() => setGame('tavla')} title="🎲 Tavla" sub="backgammon" />
-                <Toggle active={game === 'dama'} onClick={() => setGame('dama')} title="⛀ Dama" sub="Türk daması" />
-              </div>
+          <div>
+            <span className="mb-1.5 block text-sm font-semibold text-white/70">Oyununu seç</span>
+            <div className="grid grid-cols-3 gap-2">
+              {GAMES.map((g) => (
+                <button
+                  key={g.id}
+                  onClick={() => setGame(g.id)}
+                  className={`rounded-xl px-2 py-3 text-center transition ${
+                    game === g.id ? 'bg-amber-glow text-ink-900' : 'bg-white/5 text-white/70 hover:bg-white/10'
+                  }`}
+                >
+                  <div className="text-2xl leading-none">{g.icon}</div>
+                  <div className="mt-1.5 text-sm font-bold leading-tight">{g.title}</div>
+                  <div className={`text-[11px] ${game === g.id ? 'text-ink-900/70' : 'text-white/40'}`}>{g.sub}</div>
+                </button>
+              ))}
             </div>
-            {game === 'tavla' ? (
+          </div>
+
+          {game === 'tavla' ? (
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <span className="mb-1.5 block text-sm font-semibold text-white/70">Kurallar</span>
                 <div className="grid grid-cols-2 gap-2">
@@ -89,24 +125,19 @@ export function Home() {
                   <Toggle active={mode === 'backgammon'} onClick={() => setMode('backgammon')} title="Çift zarlı" sub="doubling cube" />
                 </div>
               </div>
-            ) : (
               <div>
-                <span className="mb-1.5 block text-sm font-semibold text-white/70">Nasıl oynanır?</span>
-                <p className="rounded-xl bg-white/5 px-3 py-2.5 text-xs leading-relaxed text-white/50">
-                  Taşlar ileri ve yana gider, yeme zorunludur. Son sıraya ulaşan taş <b>dama</b> olur.
-                </p>
+                <span className="mb-1.5 block text-sm font-semibold text-white/70">Maç hedefi</span>
+                <div className="grid grid-cols-4 gap-2">
+                  {TARGETS.map((t) => (
+                    <Toggle key={t} active={target === t} onClick={() => setTarget(t)} title={`${t}`} sub={t === 1 ? 'tek oyun' : 'sayıya'} />
+                  ))}
+                </div>
               </div>
-            )}
-          </div>
-
-          {game === 'tavla' && (
+            </div>
+          ) : (
             <div>
-              <span className="mb-1.5 block text-sm font-semibold text-white/70">Maç hedefi</span>
-              <div className="grid grid-cols-4 gap-2">
-                {TARGETS.map((t) => (
-                  <Toggle key={t} active={target === t} onClick={() => setTarget(t)} title={`${t}`} sub={t === 1 ? 'tek oyun' : 'sayıya'} />
-                ))}
-              </div>
+              <span className="mb-1.5 block text-sm font-semibold text-white/70">Nasıl oynanır?</span>
+              <p className="rounded-xl bg-white/5 px-3 py-2.5 text-xs leading-relaxed text-white/50">{meta.how}</p>
             </div>
           )}
 
@@ -172,7 +203,7 @@ export function Home() {
               Bota karşı pratik
             </a>
           </nav>
-          <p className="mt-3">Ücretsiz, üyeliksiz online tavla ve dama — OnlineTavla</p>
+          <p className="mt-3">Ücretsiz, üyeliksiz online tavla, dama ve amiral battı — OnlineTavla</p>
         </footer>
       </main>
     </div>
@@ -221,7 +252,7 @@ function Toggle({ active, onClick, title, sub }: { active: boolean; onClick: () 
 
 // Online friends, one tap from the home screen — no digging through the modal.
 // Refreshes presence every 30s while visible.
-function FriendsStrip({ game }: { game: 'tavla' | 'dama' }) {
+function FriendsStrip({ game }: { game: GameId }) {
   const inviteFriend = useStore((s) => s.inviteFriend);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [modal, setModal] = useState(false);
@@ -274,7 +305,7 @@ function FriendsStrip({ game }: { game: 'tavla' | 'dama' }) {
   );
 }
 
-function TournamentBanner({ game, authed }: { game: 'tavla' | 'dama'; authed: boolean }) {
+function TournamentBanner({ game, authed }: { game: GameId; authed: boolean }) {
   const [t, setT] = useState<Tournament | null>(null);
   useEffect(() => {
     void fetchTournament(game).then(setT);

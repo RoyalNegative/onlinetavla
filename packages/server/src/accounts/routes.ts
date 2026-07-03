@@ -2,6 +2,7 @@
 // are disabled (empty leaderboard, 401 on authed routes).
 
 import { Router, type Request, type Response } from 'express';
+import { games } from '@tavla/engine';
 import { accountsEnabled, accountsReason, verifyIdToken } from './firebase';
 import { isOnline } from './presence';
 import {
@@ -83,7 +84,7 @@ export function accountsRouter(): Router {
 
   // ---- Tournaments (daily, per game) ----
   router.get('/tournaments', async (req: Request, res: Response) => {
-    const gameId = req.query.gameId === 'dama' ? 'dama' : 'tavla';
+    const gameId = typeof req.query.gameId === 'string' && req.query.gameId in games ? req.query.gameId : 'tavla';
     const { meta, standings } = await tournamentStandings(gameId);
     const uid = await uidFrom(req);
     const joined = uid ? standings.some((s) => s.uid === uid) : false;
@@ -93,7 +94,7 @@ export function accountsRouter(): Router {
   router.post('/tournaments/join', async (req: Request, res: Response) => {
     const uid = await uidFrom(req);
     if (!uid) return res.status(401).json({ error: 'unauthorized' });
-    const gameId = req.body?.gameId === 'dama' ? 'dama' : 'tavla';
+    const gameId = typeof req.body?.gameId === 'string' && req.body.gameId in games ? (req.body.gameId as string) : 'tavla';
     const profile = await ensureProfile(uid, 'Oyuncu', null);
     const result = await joinTournament(uid, gameId, profile.handle, profile.avatar);
     if ('error' in result) return res.status(400).json({ error: result.error });

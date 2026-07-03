@@ -35,6 +35,10 @@ function cleanTarget(t: unknown): number {
   return ALLOWED_TARGETS.includes(n) ? n : 5;
 }
 
+function cleanGameId(g: unknown): string {
+  return typeof g === 'string' && g in games ? g : 'tavla';
+}
+
 function buildSnapshot(room: Room): RoomSnapshot {
   return {
     roomId: room.id,
@@ -168,7 +172,7 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
   io.on('connection', (socket: Socket) => {
     socket.on('room:create', async (payload: CreatePayload, cb?: (ack: Ack) => void) => {
       const user = await verifyIdToken(payload?.idToken);
-      const gameId = payload?.gameId === 'dama' ? 'dama' : 'tavla';
+      const gameId = cleanGameId(payload?.gameId);
       const config =
         gameId === 'tavla'
           ? { mode: cleanMode(payload?.mode), targetPoints: cleanTarget(payload?.targetPoints) }
@@ -260,7 +264,7 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
     // Online matchmaking: queue per game; pair the first two waiting players.
     socket.on('matchmake', async (payload: { gameId?: string; name?: string; idToken?: string | null }, cb?: (ack: Ack) => void) => {
       const user = await verifyIdToken(payload?.idToken);
-      const gameId = payload?.gameId === 'dama' ? 'dama' : 'tavla';
+      const gameId = cleanGameId(payload?.gameId);
       const me: QueueEntry = { socketId: socket.id, name: cleanName(payload?.name), uid: user?.uid ?? null, avatar: user?.picture ?? null };
       const waiting = (queues.get(gameId) ?? []).filter(
         (e) => e.socketId !== socket.id && io.sockets.sockets.get(e.socketId)?.connected,
@@ -307,7 +311,7 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
       if (targets.length === 0) return cb?.({ ok: false, error: 'offline' });
 
       const fromName = cleanName(user.name);
-      const gameId = payload?.gameId === 'dama' ? 'dama' : 'tavla';
+      const gameId = cleanGameId(payload?.gameId);
       const config = gameId === 'tavla' ? { mode: 'classic', targetPoints: 1 } : {};
       const room = rooms.create(gameId, config);
       const r = rooms.join(room, { name: fromName, uid: user.uid, avatar: user.picture, socketId: socket.id });

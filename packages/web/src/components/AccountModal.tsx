@@ -3,6 +3,7 @@
 // reward registering.
 
 import { useEffect, useState } from 'react';
+import type { GameId } from '@tavla/engine';
 import {
   addFriend as apiAddFriend,
   fetchFriends,
@@ -142,7 +143,7 @@ function MatchesTab({ authed }: { authed: boolean }) {
       {matches.map((m, i) => (
         <div key={i} className="flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2 text-sm">
           <span className={`font-bold ${m.won ? 'text-emerald-400' : 'text-rose-400'}`}>{m.won ? 'G' : 'M'}</span>
-          <span className="w-10 text-xs text-white/40">{m.gameId === 'dama' ? 'Dama' : 'Tavla'}</span>
+          <span className="w-10 text-xs text-white/40">{m.gameId === 'dama' ? 'Dama' : m.gameId === 'amiral' ? 'Amiral' : 'Tavla'}</span>
           <span className="flex-1 truncate">vs {m.opponentName}</span>
           <span className="tabular-nums text-white/60">{m.myScore}–{m.opponentScore}</span>
         </div>
@@ -156,7 +157,7 @@ function FriendsTab({ authed }: { authed: boolean }) {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [handle, setHandle] = useState('');
   const [err, setErr] = useState('');
-  const [game, setGame] = useState<'tavla' | 'dama'>('tavla');
+  const [game, setGame] = useState<GameId>('tavla');
 
   const reload = () => void fetchFriends().then(setFriends);
   useEffect(() => {
@@ -189,6 +190,7 @@ function FriendsTab({ authed }: { authed: boolean }) {
         Davet oyunu:
         <button onClick={() => setGame('tavla')} className={`rounded px-2 py-0.5 ${game === 'tavla' ? 'bg-amber-glow text-ink-900' : 'bg-white/5'}`}>Tavla</button>
         <button onClick={() => setGame('dama')} className={`rounded px-2 py-0.5 ${game === 'dama' ? 'bg-amber-glow text-ink-900' : 'bg-white/5'}`}>Dama</button>
+        <button onClick={() => setGame('amiral')} className={`rounded px-2 py-0.5 ${game === 'amiral' ? 'bg-amber-glow text-ink-900' : 'bg-white/5'}`}>Amiral</button>
       </div>
 
       <div className="scroll-thin max-h-64 space-y-1 overflow-y-auto">
@@ -212,10 +214,10 @@ function FriendsTab({ authed }: { authed: boolean }) {
 
 function TournamentTab() {
   const authUser = useStore((s) => s.authUser);
-  const [game, setGame] = useState<'tavla' | 'dama'>('tavla');
+  const [game, setGame] = useState<GameId>('tavla');
   const [data, setData] = useState<Tournament | null>(null);
 
-  const reload = (g: 'tavla' | 'dama') => void fetchTournament(g).then(setData);
+  const reload = (g: GameId) => void fetchTournament(g).then(setData);
   useEffect(() => {
     reload(game);
   }, [game]);
@@ -225,6 +227,7 @@ function TournamentTab() {
       <div className="flex items-center gap-2 text-xs text-white/50">
         <button onClick={() => setGame('tavla')} className={`rounded px-2 py-1 ${game === 'tavla' ? 'bg-amber-glow text-ink-900' : 'bg-white/5'}`}>Tavla</button>
         <button onClick={() => setGame('dama')} className={`rounded px-2 py-1 ${game === 'dama' ? 'bg-amber-glow text-ink-900' : 'bg-white/5'}`}>Dama</button>
+        <button onClick={() => setGame('amiral')} className={`rounded px-2 py-1 ${game === 'amiral' ? 'bg-amber-glow text-ink-900' : 'bg-white/5'}`}>Amiral</button>
       </div>
 
       {data && (
