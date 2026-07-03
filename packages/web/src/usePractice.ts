@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { games, mathRng, randomFleet } from '@tavla/engine';
 import type { BattleshipState, BattleshipView, DamaView, GameId, TavlaView } from '@tavla/engine';
-import { isTension } from './components/BattleshipBoard';
+import { BOMB_FALL_MS, BOMB_FALL_SLOW_MS, BOOM_MS, isSlowShot } from './components/BattleshipBoard';
 
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -96,12 +96,15 @@ export function usePractice(gameId: GameId, opts?: { noTouch?: boolean }) {
     return null;
   }
 
-  // Amiral shots animate as falling bombs (slow-motion in the endgame) — the
-  // bot waits for the previous bomb to land before acting.
-  function stepDelay(s: any): number {
+  // Amiral shots animate as falling bombs — the bot waits for the previous
+  // bomb to land (slow only while hunting a hidden last ship) before acting.
+  function stepDelay(prev: any, next: any): number {
     if (gameId !== 'amiral') return 650;
-    const v = mod.viewFor(s, null) as BattleshipView;
-    return isTension(v) ? 2400 : 1300;
+    const shot = (next as BattleshipState).lastShot;
+    if (!shot || next.moveSeq - prev.moveSeq !== 1) return 900;
+    const preView = mod.viewFor(prev, null) as BattleshipView;
+    const fall = isSlowShot(preView, 1 - shot.by) ? BOMB_FALL_SLOW_MS : BOMB_FALL_MS;
+    return fall + BOOM_MS + 250;
   }
 
   function pump(s: any) {
@@ -117,7 +120,7 @@ export function usePractice(gameId: GameId, opts?: { noTouch?: boolean }) {
     if (bot) {
       const ns = mod.applyAction(s, bot, 1, mathRng);
       setState(ns);
-      timer.current = setTimeout(() => pump(ns), stepDelay(ns));
+      timer.current = setTimeout(() => pump(ns), stepDelay(s, ns));
       return;
     }
     setState(s);
@@ -132,7 +135,7 @@ export function usePractice(gameId: GameId, opts?: { noTouch?: boolean }) {
     }
     setState(ns);
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => pump(ns), gameId === 'amiral' ? stepDelay(ns) : 320);
+    timer.current = setTimeout(() => pump(ns), gameId === 'amiral' ? stepDelay(state, ns) : 320);
   }
 
   function restart() {

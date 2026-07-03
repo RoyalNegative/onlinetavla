@@ -16,8 +16,8 @@ const SHIP_NAMES = ['Uçak gemisi', 'Zırhlı', 'Kruvazör', 'Denizaltı', 'Muhr
 const COLS = 'ABCDEFGHIJ';
 
 export const BOMB_FALL_MS = 480;
-export const BOMB_FALL_SLOW_MS = 1500;
-const BOOM_MS = 550;
+export const BOMB_FALL_SLOW_MS = 1000;
+export const BOOM_MS = 550;
 
 export interface ShotFx {
   cell: number;
@@ -27,9 +27,21 @@ export interface ShotFx {
   slow: boolean;
 }
 
-/** True once either fleet is down to its last ship — the slow-motion endgame. */
+/** True once either fleet is down to its last ship — the red-pulse endgame. */
 export function isTension(view: BattleshipView): boolean {
   return view.phase !== 'placing' && (view.boards[0].shipsLeft <= 1 || view.boards[1].shipsLeft <= 1);
+}
+
+/**
+ * Slow motion only while hunting a *hidden* last ship: the board being fired
+ * at has one ship afloat and no un-sunk hit on it yet. Once the ship is found,
+ * follow-up shots drop at normal speed.
+ */
+export function isSlowShot(preView: BattleshipView, landedBoard: number): boolean {
+  const b = preView.boards[landedBoard];
+  if (b.shipsLeft !== 1) return false;
+  const sunk = new Set(b.sunk.flat());
+  return !b.shots.some((s) => s.hit && !sunk.has(s.cell));
 }
 
 /**
@@ -74,12 +86,13 @@ export function useBattleshipFx(live: BattleshipView | null): { shown: Battleshi
     // carrying the same view) — keep the bomb in the air.
     if (animSeq.current === live.moveSeq) return;
 
-    const slow = isTension(cur) || isTension(live);
-    const fall = slow ? BOMB_FALL_SLOW_MS : BOMB_FALL_MS;
     const ls = live.lastShot;
+    const board = ls.by === 'white' ? 1 : 0;
+    const slow = isSlowShot(cur, board);
+    const fall = slow ? BOMB_FALL_SLOW_MS : BOMB_FALL_MS;
     clear();
     animSeq.current = live.moveSeq;
-    setFx({ cell: ls.cell, board: ls.by === 'white' ? 1 : 0, hit: ls.result !== 'miss', stage: 'fall', slow });
+    setFx({ cell: ls.cell, board, hit: ls.result !== 'miss', stage: 'fall', slow });
     timers.current.push(
       setTimeout(() => {
         settle(live); // impact: reveal the result under the explosion
