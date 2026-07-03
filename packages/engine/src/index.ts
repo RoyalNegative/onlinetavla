@@ -52,12 +52,14 @@ export {
   randomFleet,
   validateFleet,
   shipCells,
+  haloCells,
   FLEET,
   BATTLESHIP_SIZE,
 } from './battleship';
 export type {
   BattleshipState,
   BattleshipAction,
+  BattleshipConfig,
   BattleshipView,
   BattleshipBoardView,
   ShipPlacement,

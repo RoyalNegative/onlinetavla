@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { BattleshipView, DamaView, TavlaView } from '@tavla/engine';
-import { BattleshipBoard } from '../components/BattleshipBoard';
+import { BattleshipBoard, useBattleshipFx } from '../components/BattleshipBoard';
 import { BattleshipPanel } from '../components/BattleshipPanel';
 import { Board } from '../components/Board';
 import { Chat } from '../components/Chat';
@@ -28,8 +28,6 @@ export function Room({ roomId }: { roomId: string }) {
     if (connected && hasName) void joinRoom(roomId);
   }, [roomId, connected, hasName, joinRoom]);
 
-  useGameEffects(update);
-
   const inThisRoom = update?.room.roomId === roomId;
   const yourTurn = !!update?.view.yourTurn;
   const isDama = update?.room.gameId === 'dama';
@@ -37,7 +35,17 @@ export function Room({ roomId }: { roomId: string }) {
   // Only read inside the inThisRoom branch, where `update` is non-null.
   const tview = update?.view as TavlaView;
   const dview = update?.view as DamaView;
-  const bview = update?.view as BattleshipView;
+
+  // Amiral: render (and sound) one bomb-flight behind the live view so the
+  // result only appears when the bomb lands.
+  const { shown: bshownRaw, fx: bfx } = useBattleshipFx(isAmiral && update ? (update.view as BattleshipView) : null);
+  const bview = bshownRaw ?? (update?.view as BattleshipView);
+
+  const effectsUpdate = useMemo(
+    () => (isAmiral && update && bshownRaw ? { ...update, view: bshownRaw } : update),
+    [isAmiral, update, bshownRaw],
+  );
+  useGameEffects(effectsUpdate);
 
   return (
     <div className="mx-auto flex min-h-full max-w-6xl flex-col">
@@ -67,7 +75,7 @@ export function Room({ roomId }: { roomId: string }) {
             style={{ maxWidth: isAmiral ? '900px' : isDama ? 'calc(100dvh - 150px)' : 'calc((100dvh - 150px) * 5 / 3)' }}
           >
             {isAmiral ? (
-              <BattleshipBoard view={bview} onAction={sendAction} />
+              <BattleshipBoard view={bview} fx={bfx} onAction={sendAction} />
             ) : isDama ? (
               <DamaBoard view={dview} interactive={dview.yourTurn && dview.legalMoves.length > 0} onAction={sendAction} />
             ) : (

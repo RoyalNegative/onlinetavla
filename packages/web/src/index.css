@@ -41,6 +41,82 @@ input:-webkit-autofill:focus {
   border-radius: 999px;
 }
 
+/* ---- Amiral Battı shot effects ---- */
+/* The bomb drops from above the grid onto the target cell; duration is set
+   inline (slow-motion when either side is down to its last ship). */
+@keyframes bs-fall {
+  0% {
+    transform: translateY(-480%) scale(1.6) rotate(-14deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(0.9) rotate(4deg);
+    opacity: 1;
+  }
+}
+@keyframes bs-boom {
+  0% {
+    transform: scale(0.3);
+    opacity: 1;
+  }
+  60% {
+    transform: scale(1.6);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+@keyframes bs-splash {
+  0% {
+    transform: scale(0.4);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+@keyframes bs-banner {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  30% {
+    transform: scale(1);
+  }
+  80% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.05);
+    opacity: 0;
+  }
+}
+/* Slow red pulse around the grids while the endgame tension is on. */
+@keyframes bs-tension {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.25), 0 0 18px rgba(244, 63, 94, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(244, 63, 94, 0.55), 0 0 34px rgba(244, 63, 94, 0.3);
+  }
+}
+.bs-tension {
+  animation: bs-tension 1.6s ease-in-out infinite;
+  border-radius: 0.75rem;
+}
+
 @layer components {
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-semibold

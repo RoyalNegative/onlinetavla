@@ -44,6 +44,7 @@ export function Home() {
 
   const [game, setGame] = useState<GameId>('tavla');
   const [mode, setMode] = useState<'classic' | 'backgammon'>('classic');
+  const [amiralKolay, setAmiralKolay] = useState(true);
   const meta = GAMES.find((g) => g.id === game)!;
   const [target, setTarget] = useState(5);
   const [joinCode, setJoinCode] = useState('');
@@ -51,7 +52,12 @@ export function Home() {
 
   async function create() {
     setBusy(true);
-    await createRoom({ gameId: game, mode, targetPoints: target });
+    await createRoom({
+      gameId: game,
+      mode,
+      targetPoints: target,
+      noTouch: game === 'amiral' ? amiralKolay : undefined,
+    });
     setBusy(false);
   }
 
@@ -132,6 +138,20 @@ export function Home() {
                     <Toggle key={t} active={target === t} onClick={() => setTarget(t)} title={`${t}`} sub={t === 1 ? 'tek oyun' : 'sayıya'} />
                   ))}
                 </div>
+              </div>
+            </div>
+          ) : game === 'amiral' ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <span className="mb-1.5 block text-sm font-semibold text-white/70">Zorluk</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <Toggle active={amiralKolay} onClick={() => setAmiralKolay(true)} title="Kolay" sub="batan geminin çevresi açılır" />
+                  <Toggle active={!amiralKolay} onClick={() => setAmiralKolay(false)} title="Zor" sub="gemiler bitişik olabilir" />
+                </div>
+              </div>
+              <div>
+                <span className="mb-1.5 block text-sm font-semibold text-white/70">Nasıl oynanır?</span>
+                <p className="rounded-xl bg-white/5 px-3 py-2.5 text-xs leading-relaxed text-white/50">{meta.how}</p>
               </div>
             </div>
           ) : (

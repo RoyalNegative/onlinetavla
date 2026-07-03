@@ -8,6 +8,7 @@ export interface CreatePayload {
   gameId?: string; // 'tavla' (default) | 'dama' | 'amiral'
   mode?: GameMode; // tavla only
   targetPoints?: number; // tavla only
+  noTouch?: boolean; // amiral only: easy mode (ships can't touch), default true
   idToken?: string | null;
 }
 

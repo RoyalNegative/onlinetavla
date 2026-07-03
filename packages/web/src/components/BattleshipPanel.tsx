@@ -82,7 +82,7 @@ export function BattleshipPanel({
   return (
     <div className="space-y-4">
       <div className="card p-3">
-        <div className="mb-2 px-1 text-xs text-white/50">Amiral Battı · 10×10</div>
+        <div className="mb-2 px-1 text-xs text-white/50">Amiral Battı · {view.noTouch ? 'Kolay mod' : 'Zor mod'}</div>
         <div className="space-y-2">
           <Row color="black" player={black} board={view.boards[1]} active={activeColor === 'black'} isYou={youSeat === 1} />
           <Row color="white" player={white} board={view.boards[0]} active={activeColor === 'white'} isYou={youSeat === 0} />

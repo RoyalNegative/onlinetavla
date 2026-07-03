@@ -38,7 +38,7 @@ interface Store {
   inviteFriend: (toUid: string, gameId: GameId) => Promise<void>;
   acceptInvite: () => void;
   dismissInvite: () => void;
-  createRoom: (opts: { gameId: GameId; mode?: 'classic' | 'backgammon'; targetPoints?: number }) => Promise<void>;
+  createRoom: (opts: { gameId: GameId; mode?: 'classic' | 'backgammon'; targetPoints?: number; noTouch?: boolean }) => Promise<void>;
   joinRoom: (roomId: string) => Promise<void>;
   sendAction: (action: unknown) => Promise<void>;
   sendChat: (text: string, kind?: 'chat' | 'emoji') => void;
@@ -160,6 +160,7 @@ export const useStore = create<Store>((set, get) => ({
       gameId: opts.gameId,
       mode: opts.mode,
       targetPoints: opts.targetPoints,
+      noTouch: opts.noTouch,
       idToken,
     });
     if (!ack.ok || !ack.roomId) {

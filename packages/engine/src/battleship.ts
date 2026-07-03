@@ -4,6 +4,11 @@
 // then take turns firing; a hit earns another shot (the common Turkish rule).
 // Hidden information lives here: viewFor redacts the opponent's unhit ships,
 // revealing a ship's cells only once it is fully sunk (or when the game ends).
+//
+// Two rule sets via config.noTouch (the Russian/Turkish paper-game convention):
+// when true, ships may not touch (diagonals included) and sinking a ship
+// auto-marks its surrounding halo as misses — the "easy" mode. When false
+// (Hasbro rules) ships may touch and nothing is revealed.
 
 import type { Rng } from './dice';
 import type { GameModule } from './module';
@@ -28,7 +33,12 @@ export type BattleshipAction =
   | { type: 'fire'; cell: number }
   | { type: 'resign' };
 
+export interface BattleshipConfig {
+  noTouch?: boolean;
+}
+
 export interface BattleshipState {
+  noTouch: boolean;
   phase: 'placing' | 'battle' | 'over';
   /** Per seat: ships as arrays of cell indices (r*10+c). Null until placed. */
   fleets: [number[][] | null, number[][] | null];
@@ -52,6 +62,7 @@ export interface BattleshipBoardView {
 }
 
 export interface BattleshipView {
+  noTouch: boolean;
   phase: BattleshipState['phase'];
   youAre: Player | null;
   yourTurn: boolean;
@@ -80,8 +91,28 @@ export function shipCells(p: ShipPlacement): number[] | null {
   return cells;
 }
 
+/** Cells surrounding a ship (diagonals included), on the board, excluding the ship itself. */
+export function haloCells(cells: number[]): number[] {
+  const own = new Set(cells);
+  const out = new Set<number>();
+  for (const c of cells) {
+    const r = Math.floor(c / N);
+    const col = c % N;
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        const nr = r + dr;
+        const nc = col + dc;
+        if (nr < 0 || nr >= N || nc < 0 || nc >= N) continue;
+        const x = nr * N + nc;
+        if (!own.has(x)) out.add(x);
+      }
+    }
+  }
+  return [...out];
+}
+
 /** Validate a full fleet submission; returns ship cell arrays or null. */
-export function validateFleet(ships: ShipPlacement[]): number[][] | null {
+export function validateFleet(ships: ShipPlacement[], noTouch = false): number[][] | null {
   if (!Array.isArray(ships) || ships.length !== FLEET.length) return null;
   const want = [...FLEET].sort((a, b) => a - b).join(',');
   const got = ships
@@ -100,12 +131,18 @@ export function validateFleet(ships: ShipPlacement[]): number[][] | null {
     }
     fleet.push(cells);
   }
+  if (noTouch) {
+    for (const cells of fleet) {
+      const others = new Set(fleet.filter((f) => f !== cells).flat());
+      if (haloCells(cells).some((c) => others.has(c))) return null;
+    }
+  }
   return fleet;
 }
 
 /** A random legal fleet — used by the client's "shuffle" button and by tests. */
-export function randomFleet(rng: Rng = Math.random): ShipPlacement[] {
-  const taken = new Set<number>();
+export function randomFleet(rng: Rng = Math.random, noTouch = false): ShipPlacement[] {
+  const taken = new Set<number>(); // ship cells + (in noTouch mode) their halos
   const out: ShipPlacement[] = [];
   const fits = (p: ShipPlacement) => {
     const cells = shipCells(p);
@@ -130,13 +167,15 @@ export function randomFleet(rng: Rng = Math.random): ShipPlacement[] {
       }
     }
     cells!.forEach((x) => taken.add(x));
+    if (noTouch) haloCells(cells!).forEach((x) => taken.add(x));
     out.push(placed!);
   }
   return out;
 }
 
-export function createInitialBattleship(): BattleshipState {
+export function createInitialBattleship(config?: BattleshipConfig): BattleshipState {
   return {
+    noTouch: !!config?.noTouch,
     phase: 'placing',
     fleets: [null, null],
     shots: [[], []],
@@ -149,6 +188,7 @@ export function createInitialBattleship(): BattleshipState {
 
 function cloneState(s: BattleshipState): BattleshipState {
   return {
+    noTouch: s.noTouch,
     phase: s.phase,
     fleets: [s.fleets[0]?.map((c) => [...c]) ?? null, s.fleets[1]?.map((c) => [...c]) ?? null],
     shots: [[...s.shots[0]], [...s.shots[1]]],
@@ -167,7 +207,7 @@ function sunkShips(fleet: number[][], shotsAt: number[]): number[][] {
 function applyPlace(state: BattleshipState, seat: number, ships: ShipPlacement[]): void {
   if (state.phase !== 'placing') throw new Error('not_placing');
   if (state.fleets[seat]) throw new Error('already_placed');
-  const fleet = validateFleet(ships);
+  const fleet = validateFleet(ships, state.noTouch);
   if (!fleet) throw new Error('illegal_placement');
   state.fleets[seat] = fleet;
   state.moveSeq += 1;
@@ -193,6 +233,11 @@ function applyFire(state: BattleshipState, seat: number, cell: unknown): void {
   }
   state.lastShot = { by: seat, cell: target, result };
   state.moveSeq += 1;
+  // Easy mode: ships can't touch, so a sunk ship's halo is provably empty —
+  // auto-mark it as misses (no wasted shots there).
+  if (result === 'sunk' && state.noTouch && ship) {
+    for (const h of haloCells(ship)) if (!mine.includes(h)) mine.push(h);
+  }
 
   const allCells = enemyFleet.flat();
   if (allCells.every((c) => mine.includes(c))) {
@@ -210,8 +255,8 @@ export const battleshipModule: GameModule<BattleshipState, BattleshipAction, unk
   minPlayers: 2,
   maxPlayers: 2,
 
-  createInitialState() {
-    return createInitialBattleship();
+  createInitialState(config) {
+    return createInitialBattleship(config as BattleshipConfig | undefined);
   },
 
   applyAction(state, action, seat, rng) {
@@ -257,6 +302,7 @@ export const battleshipModule: GameModule<BattleshipState, BattleshipAction, unk
 
     const youAre = seat === null ? null : seatToColor(seat);
     return {
+      noTouch: state.noTouch,
       phase: state.phase,
       youAre,
       yourTurn:

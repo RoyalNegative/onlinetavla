@@ -1,7 +1,9 @@
 // Local practice vs a simple bot — the beginner "tutorial" mode. No server.
 
 import { useState } from 'react';
-import type { DamaView, TavlaView } from '@tavla/engine';
+import type { BattleshipView, DamaView, GameId, TavlaView } from '@tavla/engine';
+import { BattleshipBoard, useBattleshipFx } from '../components/BattleshipBoard';
+import { BattleshipPanel } from '../components/BattleshipPanel';
 import { Board } from '../components/Board';
 import { Controls } from '../components/Controls';
 import { DamaBoard } from '../components/DamaBoard';
@@ -18,7 +20,8 @@ const PLAYERS: PlayerInfo[] = [
 ];
 
 export function Practice() {
-  const [game, setGame] = useState<'tavla' | 'dama'>('tavla');
+  const [game, setGame] = useState<GameId>('tavla');
+  const [amiralKolay, setAmiralKolay] = useState(true);
   return (
     <div className="mx-auto flex min-h-full max-w-6xl flex-col">
       <Header
@@ -28,7 +31,14 @@ export function Practice() {
           </button>
         }
       />
-      <PracticeGame key={game} gameId={game} game={game} setGame={setGame} />
+      <PracticeGame
+        key={`${game}:${amiralKolay ? 'k' : 'z'}`}
+        gameId={game}
+        game={game}
+        setGame={setGame}
+        amiralKolay={amiralKolay}
+        setAmiralKolay={setAmiralKolay}
+      />
     </div>
   );
 }
@@ -37,24 +47,36 @@ function PracticeGame({
   gameId,
   game,
   setGame,
+  amiralKolay,
+  setAmiralKolay,
 }: {
-  gameId: 'tavla' | 'dama';
-  game: 'tavla' | 'dama';
-  setGame: (g: 'tavla' | 'dama') => void;
+  gameId: GameId;
+  game: GameId;
+  setGame: (g: GameId) => void;
+  amiralKolay: boolean;
+  setAmiralKolay: (v: boolean) => void;
 }) {
-  const { view, act, restart } = usePractice(gameId);
+  const { view, act, restart } = usePractice(gameId, { noTouch: amiralKolay });
   const isDama = gameId === 'dama';
+  const isAmiral = gameId === 'amiral';
   const tview = view as TavlaView;
   const dview = view as DamaView;
-  const yourTurn = view.yourTurn;
+
+  // Amiral: render one bomb-flight behind so shot results land with the bomb.
+  const { shown: bshown, fx: bfx } = useBattleshipFx(isAmiral ? (view as BattleshipView) : null);
+  const bview = bshown ?? (view as BattleshipView);
+
+  const yourTurn = isAmiral ? bview.yourTurn : view.yourTurn;
 
   return (
     <main className="grid flex-1 items-start gap-3 px-2 pb-6 sm:gap-4 sm:px-6 md:grid-cols-[1fr_300px] lg:grid-cols-[1fr_340px]">
       <div
         className={`relative mx-auto w-full rounded-2xl transition-shadow ${yourTurn ? 'ring-2 ring-amber-glow/70 shadow-[0_0_30px_rgba(245,177,76,0.25)]' : ''}`}
-        style={{ maxWidth: isDama ? 'calc(100dvh - 150px)' : 'calc((100dvh - 150px) * 5 / 3)' }}
+        style={{ maxWidth: isAmiral ? '900px' : isDama ? 'calc(100dvh - 150px)' : 'calc((100dvh - 150px) * 5 / 3)' }}
       >
-        {isDama ? (
+        {isAmiral ? (
+          <BattleshipBoard view={bview} fx={bfx} onAction={act} />
+        ) : isDama ? (
           <DamaBoard view={dview} interactive={dview.yourTurn && dview.legalMoves.length > 0} onAction={act} />
         ) : (
           <Board view={tview} interactive={tview.yourTurn && tview.game.phase === 'moving' && tview.legalMoves.length > 0} onAction={act} />
@@ -67,16 +89,25 @@ function PracticeGame({
         </div>
 
         <div className="card p-3">
-          <div className="mb-2 grid grid-cols-2 gap-2">
+          <div className="mb-2 grid grid-cols-3 gap-2">
             <Toggle active={game === 'tavla'} onClick={() => setGame('tavla')} label="🎲 Tavla" />
             <Toggle active={game === 'dama'} onClick={() => setGame('dama')} label="⛀ Dama" />
+            <Toggle active={game === 'amiral'} onClick={() => setGame('amiral')} label="🚢 Amiral" />
           </div>
+          {isAmiral && (
+            <div className="mb-2 grid grid-cols-2 gap-2">
+              <Toggle active={amiralKolay} onClick={() => setAmiralKolay(true)} label="Kolay" />
+              <Toggle active={!amiralKolay} onClick={() => setAmiralKolay(false)} label="Zor" />
+            </div>
+          )}
           <button className="btn-ghost w-full" onClick={restart}>
             ↻ Yeniden başlat
           </button>
         </div>
 
-        {isDama ? (
+        {isAmiral ? (
+          <BattleshipPanel view={bview} players={PLAYERS} youSeat={0} onResign={() => act({ type: 'resign' })} onRematch={restart} rematch={{ votes: 0, needed: 1 }} />
+        ) : isDama ? (
           <DamaPanel view={dview} players={PLAYERS} youSeat={0} onResign={() => act({ type: 'resign' })} onRematch={restart} rematch={{ votes: 0, needed: 1 }} />
         ) : (
           <>
@@ -101,7 +132,7 @@ function Toggle({ active, onClick, label }: { active: boolean; onClick: () => vo
   );
 }
 
-function Rules({ gameId }: { gameId: 'tavla' | 'dama' }) {
+function Rules({ gameId }: { gameId: GameId }) {
   const items =
     gameId === 'tavla'
       ? [
@@ -110,12 +141,19 @@ function Rules({ gameId }: { gameId: 'tavla' | 'dama' }) {
           'Bar’da taşın varsa önce onu içeri sokmalısın.',
           'Tüm taşların kendi evine girince toplamaya başlarsın; ilk bitiren kazanır.',
         ]
-      : [
-          'Taşlar ileri ve yana birer kare gider — geriye gidemez.',
-          'Rakip taşın üstünden boş kareye atlayarak yersin. Yeme zorunlu, en çok yiyeni seç.',
-          'Son sıraya ulaşan taş DAMA olur ve uzaktan (çok kare) oynar.',
-          'Rakibin taşı ya da hamlesi kalmazsa kazanırsın.',
-        ];
+      : gameId === 'dama'
+        ? [
+            'Taşlar ileri ve yana birer kare gider — geriye gidemez.',
+            'Rakip taşın üstünden boş kareye atlayarak yersin. Yeme zorunlu, en çok yiyeni seç.',
+            'Son sıraya ulaşan taş DAMA olur ve uzaktan (çok kare) oynar.',
+            'Rakibin taşı ya da hamlesi kalmazsa kazanırsın.',
+          ]
+        : [
+            '5 gemini 10×10 alana gizlice yerleştir (5-4-3-3-2 uzunluk).',
+            'Sırayla rakip alanına ateş et: 💥 isabet, 🌊 ıska.',
+            'İsabet ettirirsen bir atış daha yaparsın.',
+            'Bir geminin tüm kareleri vurulunca batar — tüm filoyu batıran kazanır.',
+          ];
   return (
     <div className="card p-4">
       <p className="mb-2 font-semibold">Nasıl oynanır?</p>

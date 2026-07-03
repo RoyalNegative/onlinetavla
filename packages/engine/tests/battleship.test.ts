@@ -98,6 +98,36 @@ describe('firing', () => {
   });
 });
 
+describe('easy mode (noTouch)', () => {
+  // Ships on every other row — nothing touches.
+  const spacedFleet = (): ShipPlacement[] => FLEET.map((len, i) => ({ r: i * 2, c: 0, len, dir: 'h' as const }));
+
+  it('rejects touching ships and generates legal no-touch random fleets', () => {
+    expect(validateFleet(rowFleet(), true)).toBeNull(); // adjacent rows touch
+    expect(validateFleet(spacedFleet(), true)).toHaveLength(FLEET.length);
+    for (let seed = 1; seed <= 10; seed++) {
+      expect(validateFleet(randomFleet(lcg(seed), true), true)).toHaveLength(FLEET.length);
+    }
+    const s = createInitialBattleship({ noTouch: true });
+    expect(() => mod.applyAction(s, { type: 'place', ships: rowFleet() }, 0, rng)).toThrow('illegal_placement');
+  });
+
+  it('auto-marks the halo of a sunk ship as misses', () => {
+    let s = createInitialBattleship({ noTouch: true });
+    s = mod.applyAction(s, { type: 'place', ships: spacedFleet() }, 0, rng);
+    s = mod.applyAction(s, { type: 'place', ships: spacedFleet() }, 1, rng);
+    s = mod.applyAction(s, { type: 'fire', cell: 80 }, 0, rng); // destroyer at 80,81
+    s = mod.applyAction(s, { type: 'fire', cell: 81 }, 0, rng);
+    expect(s.lastShot?.result).toBe('sunk');
+    const v = mod.viewFor(s, 0);
+    const misses = v.boards[1].shots
+      .filter((x: { hit: boolean }) => !x.hit)
+      .map((x: { cell: number }) => x.cell)
+      .sort((a: number, b: number) => a - b);
+    expect(misses).toEqual([70, 71, 72, 82, 90, 91, 92]);
+  });
+});
+
 describe('views (hidden information)', () => {
   it('hides the enemy fleet from players and both fleets from spectators', () => {
     let s = battleState();

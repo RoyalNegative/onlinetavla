@@ -176,7 +176,9 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
       const config =
         gameId === 'tavla'
           ? { mode: cleanMode(payload?.mode), targetPoints: cleanTarget(payload?.targetPoints) }
-          : {};
+          : gameId === 'amiral'
+            ? { noTouch: payload?.noTouch !== false } // easy (no-touch) unless explicitly hard
+            : {};
       const room = rooms.create(gameId, config);
       const result = rooms.join(room, {
         name: cleanName(payload?.name),
@@ -276,7 +278,7 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
         return cb?.({ ok: true });
       }
       queues.set(gameId, waiting);
-      const config = gameId === 'tavla' ? { mode: 'classic', targetPoints: 1 } : {};
+      const config = gameId === 'tavla' ? { mode: 'classic', targetPoints: 1 } : gameId === 'amiral' ? { noTouch: true } : {};
       const room = rooms.create(gameId, config);
       const r1 = rooms.join(room, { name: opp.name, uid: opp.uid, avatar: opp.avatar, socketId: opp.socketId });
       const r2 = rooms.join(room, { name: me.name, uid: me.uid, avatar: me.avatar, socketId: me.socketId });
@@ -312,7 +314,7 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
 
       const fromName = cleanName(user.name);
       const gameId = cleanGameId(payload?.gameId);
-      const config = gameId === 'tavla' ? { mode: 'classic', targetPoints: 1 } : {};
+      const config = gameId === 'tavla' ? { mode: 'classic', targetPoints: 1 } : gameId === 'amiral' ? { noTouch: true } : {};
       const room = rooms.create(gameId, config);
       const r = rooms.join(room, { name: fromName, uid: user.uid, avatar: user.picture, socketId: socket.id });
       socket.join(room.id);
