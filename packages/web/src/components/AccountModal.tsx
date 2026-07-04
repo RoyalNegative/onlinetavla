@@ -3,6 +3,7 @@
 // reward registering.
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { GameId } from '@tavla/engine';
 import {
   addFriend as apiAddFriend,
@@ -42,7 +43,10 @@ export function AccountModal({ initialTab, onClose }: { initialTab: Tab; onClose
 
   const winRate = (e: { wins: number; games: number }) => (e.games ? Math.round((e.wins / e.games) * 100) : 0);
 
-  return (
+  // Portal to <body>: callers render this inside .card containers whose
+  // backdrop-filter would otherwise trap the fixed overlay in their stacking
+  // context (the modal appeared *behind* the cards below it).
+  return createPortal(
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4" onClick={onClose}>
       <div className="card w-full max-w-lg p-5" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-start justify-between gap-2">
@@ -81,7 +85,8 @@ export function AccountModal({ initialTab, onClose }: { initialTab: Tab; onClose
         {tab === 'profile' && <ProfileTab authed={!!authUser} winRate={winRate} />}
         {tab === 'matches' && <MatchesTab authed={!!authUser} />}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
