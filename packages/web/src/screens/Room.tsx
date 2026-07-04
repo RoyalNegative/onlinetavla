@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { BattleshipView, DamaView, TavlaView } from '@tavla/engine';
+import type { BattleshipView, DamaView, DortluView, MangalaView, TavlaView } from '@tavla/engine';
+import { treasuryOf } from '@tavla/engine';
 import { BattleshipBoard, useBattleshipFx } from '../components/BattleshipBoard';
 import { BattleshipPanel } from '../components/BattleshipPanel';
 import { Board } from '../components/Board';
@@ -7,7 +8,10 @@ import { Chat } from '../components/Chat';
 import { Controls } from '../components/Controls';
 import { DamaBoard } from '../components/DamaBoard';
 import { DamaPanel } from '../components/DamaPanel';
+import { DortluBoard } from '../components/DortluBoard';
+import { GenericPanel } from '../components/GenericPanel';
 import { Header } from '../components/Header';
+import { MangalaBoard } from '../components/MangalaBoard';
 import { PlayerPanel } from '../components/PlayerPanel';
 import { navigate } from '../router';
 import { useStore } from '../store';
@@ -32,9 +36,13 @@ export function Room({ roomId }: { roomId: string }) {
   const yourTurn = !!update?.view.yourTurn;
   const isDama = update?.room.gameId === 'dama';
   const isAmiral = update?.room.gameId === 'amiral';
+  const isMangala = update?.room.gameId === 'mangala';
+  const isDortlu = update?.room.gameId === 'dortlu';
   // Only read inside the inThisRoom branch, where `update` is non-null.
   const tview = update?.view as TavlaView;
   const dview = update?.view as DamaView;
+  const mview = update?.view as MangalaView;
+  const cview = update?.view as DortluView;
 
   // Amiral: render (and sound) one bomb-flight behind the live view so the
   // result only appears when the bomb lands.
@@ -72,10 +80,24 @@ export function Room({ roomId }: { roomId: string }) {
           <div
             className={`relative mx-auto w-full rounded-2xl transition-shadow ${yourTurn ? 'ring-2 ring-amber-glow/70 shadow-[0_0_30px_rgba(245,177,76,0.25)]' : ''}`}
             // Cap the board so it fits the viewport on landscape phones.
-            style={{ maxWidth: isAmiral ? '900px' : isDama ? 'calc(100dvh - 150px)' : 'calc((100dvh - 150px) * 5 / 3)' }}
+            style={{
+              maxWidth: isAmiral
+                ? '900px'
+                : isMangala
+                  ? '760px'
+                  : isDortlu
+                    ? '560px'
+                    : isDama
+                      ? 'calc(100dvh - 150px)'
+                      : 'calc((100dvh - 150px) * 5 / 3)',
+            }}
           >
             {isAmiral ? (
               <BattleshipBoard view={bview} fx={bfx} onAction={sendAction} />
+            ) : isMangala ? (
+              <MangalaBoard view={mview} onAction={sendAction} />
+            ) : isDortlu ? (
+              <DortluBoard view={cview} onAction={sendAction} />
             ) : isDama ? (
               <DamaBoard view={dview} interactive={dview.yourTurn && dview.legalMoves.length > 0} onAction={sendAction} />
             ) : (
@@ -94,6 +116,38 @@ export function Room({ roomId }: { roomId: string }) {
                 view={bview}
                 players={update.room.players}
                 youSeat={update.you.seat}
+                onResign={() => sendAction({ type: 'resign' })}
+                onRematch={voteRematch}
+                rematch={update.room.rematch}
+              />
+            ) : isMangala ? (
+              <GenericPanel
+                heading="Mangala · taş toplama"
+                players={update.room.players}
+                youSeat={update.you.seat}
+                youAre={mview.youAre}
+                turn={mview.turn}
+                winner={mview.winner}
+                over={mview.phase === 'over'}
+                lineFor={(c) => `${c === 'white' ? 'Beyaz' : 'Siyah'} · haznede ${mview.pits[treasuryOf(c === 'white' ? 0 : 1)]} taş`}
+                playingText="Sıra sende — bir kuyunu seç"
+                waitingText="Rakip oynuyor…"
+                onResign={() => sendAction({ type: 'resign' })}
+                onRematch={voteRematch}
+                rematch={update.room.rematch}
+              />
+            ) : isDortlu ? (
+              <GenericPanel
+                heading="4'ü Bağla · dörtlü sıra"
+                players={update.room.players}
+                youSeat={update.you.seat}
+                youAre={cview.youAre}
+                turn={cview.turn}
+                winner={cview.winner}
+                over={cview.phase === 'over'}
+                lineFor={(c) => `${c === 'white' ? 'Sarı pul' : 'Siyah pul'}`}
+                playingText="Sıra sende — bir sütun seç"
+                waitingText="Rakip oynuyor…"
                 onResign={() => sendAction({ type: 'resign' })}
                 onRematch={voteRematch}
                 rematch={update.room.rematch}
@@ -151,41 +205,46 @@ function NameGate({ onSubmit }: { onSubmit: (n: string) => void }) {
   );
 }
 
-// Native share sheet on phones (WhatsApp/Telegram in one tap), clipboard elsewhere.
-// Returns true when the link was copied (caller shows "copied" feedback).
-async function shareInviteLink(url: string): Promise<boolean> {
-  if (navigator.share) {
-    try {
-      await navigator.share({ title: 'OnlineTavla', text: 'Gel tavla oynayalım! 🎲', url });
-      return false;
-    } catch {
-      return false; // user closed the sheet — nothing to confirm
-    }
-  }
-  await navigator.clipboard.writeText(url);
-  return true;
-}
+// Copy is the primary action everywhere — one click, no OS dialog in between.
+// On phones we additionally offer the native share sheet (WhatsApp/Telegram in
+// one tap), where it actually saves steps.
+const canNativeShare =
+  typeof navigator.share === 'function' && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
-function InvitePanel({ roomId }: { roomId: string }) {
-  const url = `${window.location.origin}/r/${roomId}`;
+function useCopy(url: string): { copied: boolean; copy: () => void } {
   const [copied, setCopied] = useState(false);
-
-  function share() {
-    void shareInviteLink(url).then((didCopy) => {
-      if (!didCopy) return;
+  function copy() {
+    void navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     });
   }
+  return { copied, copy };
+}
+
+function shareNative(url: string): void {
+  void navigator.share({ title: 'OnlineTavla', text: 'Gel oynayalım! 🎲', url }).catch(() => {
+    /* user closed the sheet */
+  });
+}
+
+function InvitePanel({ roomId }: { roomId: string }) {
+  const url = `${window.location.origin}/r/${roomId}`;
+  const { copied, copy } = useCopy(url);
 
   return (
     <div className="card space-y-2 p-4">
       <p className="text-sm font-semibold">Arkadaşını davet et</p>
       <div className="flex gap-2">
         <input readOnly value={url} className="input py-2 text-base sm:text-sm" onFocus={(e) => e.target.select()} />
-        <button className="btn-primary px-3" onClick={share}>
-          {copied ? '✓' : 'Paylaş'}
+        <button className="btn-primary px-3" onClick={copy}>
+          {copied ? '✓' : 'Kopyala'}
         </button>
+        {canNativeShare && (
+          <button className="btn-ghost px-3" onClick={() => shareNative(url)} title="Paylaş">
+            ↗
+          </button>
+        )}
       </div>
       <p className="text-xs text-white/40">Bu linki gönder; karşı taraf açınca oyun başlar.</p>
     </div>
@@ -194,25 +253,21 @@ function InvitePanel({ roomId }: { roomId: string }) {
 
 function WaitingOverlay({ roomId }: { roomId: string }) {
   const url = `${window.location.origin}/r/${roomId}`;
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopy(url);
   return (
     <div className="absolute inset-0 z-20 grid place-items-center rounded-2xl bg-black/55 backdrop-blur-sm">
       <div className="card max-w-xs p-6 text-center">
         <div className="mb-2 text-3xl">⏳</div>
         <p className="font-semibold">Rakip bekleniyor…</p>
-        <p className="mt-1 text-xs text-white/50">Linki paylaş, karşı taraf bağlanınca başlıyoruz.</p>
-        <button
-          className="btn-primary mt-3 w-full"
-          onClick={() =>
-            void shareInviteLink(url).then((didCopy) => {
-              if (!didCopy) return;
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1500);
-            })
-          }
-        >
-          {copied ? '✓ Kopyalandı' : 'Davet linkini paylaş'}
+        <p className="mt-1 text-xs text-white/50">Linki gönder, karşı taraf bağlanınca başlıyoruz.</p>
+        <button className="btn-primary mt-3 w-full" onClick={copy}>
+          {copied ? '✓ Kopyalandı' : 'Davet linkini kopyala'}
         </button>
+        {canNativeShare && (
+          <button className="btn-ghost mt-2 w-full" onClick={() => shareNative(url)}>
+            ↗ Uygulamayla paylaş
+          </button>
+        )}
       </div>
     </div>
   );
