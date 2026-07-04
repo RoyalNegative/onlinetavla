@@ -94,6 +94,17 @@ export async function addFriend(handle: string): Promise<{ friend?: Friend; erro
   return res.ok ? { friend: data.friend } : { error: data.error ?? 'error' };
 }
 
+/** One-tap add from a room: we know the opponent's uid, no handle typing. */
+export async function addFriendByUid(uid: string): Promise<{ friend?: Friend; error?: string }> {
+  const res = await fetch('/api/friends', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+    body: JSON.stringify({ uid }),
+  });
+  const data = await res.json();
+  return res.ok ? { friend: data.friend } : { error: data.error ?? 'error' };
+}
+
 export async function removeFriend(uid: string): Promise<void> {
   await fetch(`/api/friends/${uid}`, { method: 'DELETE', headers: await authHeaders() });
 }

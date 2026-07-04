@@ -48,6 +48,13 @@ interface Store {
 
 const tokenKey = (roomId: string) => `tavla.token.${roomId}`;
 
+/** Dev-only escape hatch so browser tests can drive auth-gated UI states. */
+declare global {
+  interface Window {
+    __store?: unknown;
+  }
+}
+
 export const useStore = create<Store>((set, get) => ({
   nickname: localStorage.getItem('tavla.nickname') ?? '',
   authUser: null,
@@ -212,3 +219,5 @@ export const useStore = create<Store>((set, get) => ({
     set({ toast: t });
   },
 }));
+
+if (import.meta.env.DEV) window.__store = useStore;

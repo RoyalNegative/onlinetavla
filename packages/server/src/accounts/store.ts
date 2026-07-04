@@ -175,6 +175,21 @@ export async function addFriend(uid: string, handle: string): Promise<FriendInfo
   return target;
 }
 
+/** Add a friend you already share a room with — by uid, no handle typing. */
+export async function addFriendByUid(uid: string, targetUid: string): Promise<FriendInfo | { error: string }> {
+  if (!accountsEnabled()) return { error: 'disabled' };
+  if (!targetUid || targetUid === uid) return { error: 'self' };
+  const profile = await getProfile(targetUid);
+  if (!profile) return { error: 'not_found' };
+  await db()
+    .collection('users')
+    .doc(uid)
+    .collection('friends')
+    .doc(targetUid)
+    .set({ handle: profile.handle, avatar: profile.avatar, addedAt: Date.now() }, { merge: true });
+  return { uid: targetUid, handle: profile.handle, avatar: profile.avatar };
+}
+
 export async function removeFriend(uid: string, friendUid: string): Promise<void> {
   if (!accountsEnabled()) return;
   await db().collection('users').doc(uid).collection('friends').doc(friendUid).delete();

@@ -7,6 +7,7 @@ import { accountsEnabled, accountsReason, verifyIdToken } from './firebase';
 import { isOnline } from './presence';
 import {
   addFriend,
+  addFriendByUid,
   ensureProfile,
   getLeaderboard,
   getMatchHistory,
@@ -65,12 +66,14 @@ export function accountsRouter(): Router {
     return res.json({ friends: friends.map((f) => ({ ...f, online: isOnline(f.uid) })) });
   });
 
+  // Add by handle (typed in the modal) or by uid (one tap on an opponent in-room).
   router.post('/friends', async (req: Request, res: Response) => {
     const uid = await uidFrom(req);
     if (!uid) return res.status(401).json({ error: 'unauthorized' });
     const handle = typeof req.body?.handle === 'string' ? req.body.handle : '';
-    if (!handle.trim()) return res.status(400).json({ error: 'handle_required' });
-    const result = await addFriend(uid, handle);
+    const targetUid = typeof req.body?.uid === 'string' ? req.body.uid : '';
+    if (!handle.trim() && !targetUid) return res.status(400).json({ error: 'handle_required' });
+    const result = handle.trim() ? await addFriend(uid, handle) : await addFriendByUid(uid, targetUid);
     if ('error' in result) return res.status(404).json({ error: result.error });
     return res.json({ friend: { ...result, online: isOnline(result.uid) } });
   });

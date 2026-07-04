@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { BattleshipView, DamaView, DortluView, MangalaView, TavlaView } from '@tavla/engine';
 import { treasuryOf } from '@tavla/engine';
+import { AddFriendChip } from '../components/AddFriendChip';
 import { BattleshipBoard, useBattleshipFx } from '../components/BattleshipBoard';
 import { BattleshipPanel } from '../components/BattleshipPanel';
 import { Board } from '../components/Board';
@@ -171,6 +172,7 @@ export function Room({ roomId }: { roomId: string }) {
               </>
             )}
             {update.room.status === 'waiting' && <InvitePanel roomId={roomId} />}
+            <AddFriendChip players={update.room.players} youSeat={update.you.seat} />
             <Chat messages={update.room.chat} onSend={sendChat} />
           </aside>
         </main>
