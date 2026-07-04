@@ -195,7 +195,6 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
     socket.on('room:join', async (payload: JoinPayload, cb?: (ack: Ack) => void) => {
       const room = rooms.get(payload?.roomId ?? '');
       if (!room) return cb?.({ ok: false, error: 'room_not_found' });
-      const wasFull = room.seats.length >= 2;
       const user = await verifyIdToken(payload?.idToken);
       const result = rooms.join(room, {
         name: cleanName(payload?.name),
@@ -205,7 +204,9 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
         socketId: socket.id,
       });
       socket.join(room.id);
-      if ('seat' in result && !wasFull) {
+      // Only a genuinely new seat announces itself — re-joins (reconnects,
+      // double-join races) used to spam "X katıldı" repeatedly.
+      if ('seat' in result && result.fresh) {
         rooms.addChat(room, systemMessage(`${result.seat.name} katıldı`));
       }
       broadcastRoom(io, room);

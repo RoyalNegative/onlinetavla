@@ -52,7 +52,7 @@ export interface JoinInfo {
   socketId: string;
 }
 
-export type JoinResult = { seat: Seat } | { spectator: true };
+export type JoinResult = { seat: Seat; fresh?: boolean } | { spectator: true };
 
 export class RoomManager {
   private rooms = new Map<string, Room>();
@@ -129,7 +129,7 @@ export class RoomManager {
       };
       room.seats.push(seat);
       room.spectators.delete(info.socketId);
-      return { seat };
+      return { seat, fresh: true };
     }
     // 4) spectate
     room.spectators.set(info.socketId, { name: info.name });

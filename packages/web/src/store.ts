@@ -115,8 +115,10 @@ export const useStore = create<Store>((set, get) => ({
         : null;
       set({ authUser });
       if (authUser && get().connected) void announcePresence();
+      // Re-join with the resolved identity — but never join nameless (it would
+      // grab a seat as "Oyuncu" before the name gate is answered).
       const rid = roomIdFromPath(window.location.pathname);
-      if (rid && get().connected) void get().joinRoom(rid);
+      if (rid && get().connected && (authUser || get().nickname.trim())) void get().joinRoom(rid);
     });
 
     void fetchAccountsEnabled().then((accountsEnabled) => set({ accountsEnabled }));
