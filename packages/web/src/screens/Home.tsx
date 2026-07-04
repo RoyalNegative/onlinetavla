@@ -96,7 +96,7 @@ export function Home() {
   }
 
   return (
-    <div className="mx-auto flex min-h-full max-w-3xl flex-col">
+    <div className="mx-auto flex min-h-full max-w-3xl flex-col lg:max-w-6xl">
       <Header />
 
       <main className="flex-1 px-4 pb-12 sm:px-6">
@@ -114,10 +114,18 @@ export function Home() {
           </p>
         </section>
 
-        {/* ---- Signature: a sliver of the board itself ---- */}
-        <BoardStrip />
+        {/* On wide screens friends + the daily tournament move to a right rail;
+            the main column keeps the start flow. Phones stack as before. */}
+        <div className={accountsEnabled ? 'grid gap-x-6 lg:grid-cols-[minmax(0,1fr)_330px] lg:items-start' : undefined}>
+          {accountsEnabled && authUser && (
+            <div className="mt-6 lg:col-start-2 lg:row-start-1 lg:mt-0">
+              <FriendsStrip game={game} />
+            </div>
+          )}
 
-        {accountsEnabled && authUser && <FriendsStrip game={game} />}
+          <div className="lg:col-start-1 lg:row-start-1 lg:row-span-3">
+            {/* ---- Signature: a sliver of the board itself ---- */}
+            <BoardStrip />
 
         {/* ---- The one card that starts a game: pick → set up ---- */}
         {!picked ? (
@@ -251,16 +259,22 @@ export function Home() {
           </button>
         </div>
 
-        {accountsEnabled && <TournamentBanner game={game} authed={!!authUser} />}
+            <div className="mt-6 text-center">
+              <button className="btn-ghost mx-auto text-sm" onClick={() => navigate('/pratik')}>
+                🎓 Yeni misin? Bota karşı pratik yap & öğren
+              </button>
+              {accountsEnabled && !authUser && (
+                <p className="mt-3 text-xs text-white/40">
+                  İstersen <b className="text-amber-glow/80">giriş yap</b> — Elo puanın, istatistiklerin ve sıralaman kaydedilsin.
+                </p>
+              )}
+            </div>
+          </div>
 
-        <div className="mt-6 text-center">
-          <button className="btn-ghost mx-auto text-sm" onClick={() => navigate('/pratik')}>
-            🎓 Yeni misin? Bota karşı pratik yap & öğren
-          </button>
-          {accountsEnabled && !authUser && (
-            <p className="mt-3 text-xs text-white/40">
-              İstersen <b className="text-amber-glow/80">giriş yap</b> — Elo puanın, istatistiklerin ve sıralaman kaydedilsin.
-            </p>
+          {accountsEnabled && (
+            <div className="mt-3 lg:col-start-2 lg:row-start-2 lg:mt-4">
+              <TournamentCard game={game} authed={!!authUser} />
+            </div>
           )}
         </div>
 
@@ -343,7 +357,7 @@ function FriendsStrip({ game }: { game: GameId }) {
   const online = friends.filter((f) => f.online);
 
   return (
-    <div className="card mt-6 p-4">
+    <div className="card p-4">
       <div className="mb-2 flex items-center justify-between">
         <p className="text-sm font-semibold">👥 Arkadaşların {online.length > 0 && <span className="text-emerald-400">· {online.length} çevrimiçi</span>}</p>
         <button className="text-xs text-amber-glow hover:underline" onClick={() => setModal(true)}>
@@ -380,33 +394,50 @@ function FriendsStrip({ game }: { game: GameId }) {
   );
 }
 
-function TournamentBanner({ game, authed }: { game: GameId; authed: boolean }) {
+// Daily tournament for the selected game, with its live top-5 — a proper card
+// so the wide-screen right rail has something worth looking at.
+function TournamentCard({ game, authed }: { game: GameId; authed: boolean }) {
   const [t, setT] = useState<Tournament | null>(null);
   useEffect(() => {
     void fetchTournament(game).then(setT);
   }, [game]);
   if (!t) return null;
+  const top = t.standings.slice(0, 5);
   return (
-    <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-amber-glow/25 bg-amber-glow/[0.07] px-4 py-3">
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-amber-glow/90">🎪 {t.meta.name}</p>
-        <p className="text-xs text-white/50">{t.standings.length} katılımcı · kazandıkça puan</p>
+    <div className="rounded-2xl border border-amber-glow/25 bg-amber-glow/[0.07] p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="min-w-0 truncate text-sm font-semibold text-amber-glow/90">🎪 {t.meta.name}</p>
+        {t.joined ? (
+          <span className="shrink-0 text-xs font-semibold text-emerald-400">✓ Katıldın</span>
+        ) : authed ? (
+          <button
+            className="btn-primary shrink-0 px-3 py-1.5 text-xs"
+            onClick={async () => {
+              await joinTournament(game);
+              void fetchTournament(game).then(setT);
+            }}
+          >
+            Katıl
+          </button>
+        ) : (
+          <span className="shrink-0 text-xs text-white/50">Giriş yap</span>
+        )}
       </div>
-      {t.joined ? (
-        <span className="shrink-0 text-sm text-emerald-400">✓ Katıldın</span>
-      ) : authed ? (
-        <button
-          className="btn-primary shrink-0 px-3 py-2 text-sm"
-          onClick={async () => {
-            await joinTournament(game);
-            void fetchTournament(game).then(setT);
-          }}
-        >
-          Katıl
-        </button>
-      ) : (
-        <span className="shrink-0 text-xs text-white/50">Giriş yap</span>
-      )}
+      <p className="mt-1 text-xs text-white/50">Bugün kazandığın her maç +1 puan · {t.standings.length} katılımcı</p>
+
+      <div className="mt-3 space-y-1">
+        {top.length === 0 ? (
+          <p className="text-xs text-white/40">Henüz katılan yok — günün ilk şampiyonu sen ol! 🏁</p>
+        ) : (
+          top.map((s, i) => (
+            <div key={s.uid} className="flex items-center gap-2 rounded-lg bg-white/5 px-2.5 py-1.5 text-sm">
+              <span className="w-5 text-center text-xs font-bold text-white/40">{i + 1}</span>
+              <span className="min-w-0 flex-1 truncate font-semibold">{s.handle}</span>
+              <span className="shrink-0 text-xs font-bold text-amber-glow">{s.points} puan</span>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }
