@@ -11,13 +11,14 @@ const TARGETS = [1, 3, 5, 7];
 
 // The hub's game catalog — adding a game here (plus its GameModule) is all the
 // home screen needs.
-const GAMES: { id: GameId; icon: string; title: string; sub: string; hero: string; how: string }[] = [
+const GAMES: { id: GameId; icon: string; title: string; sub: string; hero: string; desc: string; how: string }[] = [
   {
     id: 'tavla',
     icon: '🎲',
     title: 'Tavla',
     sub: 'backgammon',
     hero: 'tavla',
+    desc: 'Kahvehane klasiği: zar at, pullarını yürüt, önce toplayan kazanır.',
     how: 'Zarları at, taşlarını rakip yönünün tersine yürüt; önce toplayan kazanır. Mars 2 katı yazar.',
   },
   {
@@ -26,7 +27,8 @@ const GAMES: { id: GameId; icon: string; title: string; sub: string; hero: strin
     title: 'Dama',
     sub: 'Türk daması',
     hero: 'dama',
-    how: 'Taşlar ileri ve yana gider, yeme zorunludur. Son sıraya ulaşan taş dama olur.',
+    desc: '8x8 tahtada taş yeme oyunu; rakibin tüm taşlarını yiyen kazanır.',
+    how: 'Taşlar ileri ve yana gider, yeme zorunludur. Son sıraya ulaşan taş dama olur (her yöne uçar).',
   },
   {
     id: 'amiral',
@@ -34,7 +36,8 @@ const GAMES: { id: GameId; icon: string; title: string; sub: string; hero: strin
     title: 'Amiral Battı',
     sub: 'deniz savaşı',
     hero: 'amiral battı',
-    how: 'Filonu gizlice yerleştir, sırayla ateş et. İsabette bir atış daha kazanırsın; tüm filoyu batıran kazanır.',
+    desc: 'Okul sıralarının kâğıt-kalem oyunu: gemileri sakla, tahmin et, batır.',
+    how: 'Filonu gizlice yerleştir, sırayla koordinat söyleyip ateş et. İsabette bir atış daha kazanırsın; rakibin beş gemisini de ilk batıran kazanır.',
   },
   {
     id: 'mangala',
@@ -42,7 +45,8 @@ const GAMES: { id: GameId; icon: string; title: string; sub: string; hero: strin
     title: 'Mangala',
     sub: 'Türk zekâ oyunu',
     hero: 'mangala',
-    how: 'Kuyundaki taşları saat yönünün tersine ek. Son taş haznene düşerse tekrar oyna; rakip kuyusunu çift yaparsan taşları kap. Çok taş toplayan kazanır.',
+    desc: 'Asırlık Türk strateji oyunu: kuyulardan taş dağıt, haznende biriktir.',
+    how: 'Herkesin 6 kuyusu ve 1 haznesi var; kuyundaki taşları alıp sırayla dağıtırsın. Son taş haznene düşerse bir hamle daha oynarsın, rakip kuyusundaki taşları çift sayıya tamamlarsan hepsini kaparsın. Oyun sonunda haznesinde çok taş olan kazanır.',
   },
   {
     id: 'dortlu',
@@ -50,7 +54,8 @@ const GAMES: { id: GameId; icon: string; title: string; sub: string; hero: strin
     title: "4'ü Bağla",
     sub: 'dörtlü sıra',
     hero: "4'ü bağla",
-    how: 'Pulunu bir sütuna bırak, en alta düşer. Yatay, dikey veya çapraz 4 pulu ilk bağlayan kazanır.',
+    desc: 'Connect Four: pulları sütunlara bırak, yan yana 4 yapan kazanır.',
+    how: 'Sırayla bir sütun seçersin, pulun en alttaki boş göze düşer. Yatay, dikey veya çapraz fark etmez — kendi renginden 4 pulu ilk hizalayan kazanır. Basit görünür, iki dakikada öğrenilir.',
   },
 ];
 
@@ -121,7 +126,7 @@ export function Home() {
               <span className="text-sm font-semibold text-white/70">Oyununu seç</span>
               <span className="text-[11px] text-white/35">1/2</span>
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {GAMES.map((g) => (
                 <button
                   key={g.id}
@@ -129,11 +134,15 @@ export function Home() {
                     setGame(g.id);
                     setPicked(true);
                   }}
-                  className="group rounded-xl bg-white/5 px-3 py-4 text-center transition hover:bg-amber-glow hover:text-ink-900"
+                  className="group flex items-start gap-3 rounded-xl bg-white/5 px-3.5 py-3 text-left transition hover:bg-amber-glow hover:text-ink-900"
                 >
-                  <div className="text-3xl leading-none">{g.icon}</div>
-                  <div className="mt-2 font-bold leading-tight">{g.title}</div>
-                  <div className="text-[11px] text-white/40 group-hover:text-ink-900/70">{g.sub}</div>
+                  <div className="mt-0.5 text-3xl leading-none">{g.icon}</div>
+                  <div className="min-w-0">
+                    <div className="font-bold leading-tight">
+                      {g.title} <span className="text-[11px] font-normal text-white/40 group-hover:text-ink-900/60">· {g.sub}</span>
+                    </div>
+                    <div className="mt-1 text-xs leading-snug text-white/45 group-hover:text-ink-900/75">{g.desc}</div>
+                  </div>
                 </button>
               ))}
             </div>
