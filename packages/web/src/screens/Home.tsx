@@ -12,7 +12,14 @@ const TARGETS = [1, 3, 5, 7];
 // The hub's game catalog — adding a game here (plus its GameModule) is all the
 // home screen needs.
 const GAMES: { id: GameId; icon: string; title: string; sub: string; hero: string; how: string }[] = [
-  { id: 'tavla', icon: '🎲', title: 'Tavla', sub: 'backgammon', hero: 'tavla', how: '' },
+  {
+    id: 'tavla',
+    icon: '🎲',
+    title: 'Tavla',
+    sub: 'backgammon',
+    hero: 'tavla',
+    how: 'Zarları at, taşlarını rakip yönünün tersine yürüt; önce toplayan kazanır. Mars 2 katı yazar.',
+  },
   {
     id: 'dama',
     icon: '⛀',
@@ -29,6 +36,22 @@ const GAMES: { id: GameId; icon: string; title: string; sub: string; hero: strin
     hero: 'amiral battı',
     how: 'Filonu gizlice yerleştir, sırayla ateş et. İsabette bir atış daha kazanırsın; tüm filoyu batıran kazanır.',
   },
+  {
+    id: 'mangala',
+    icon: '🪨',
+    title: 'Mangala',
+    sub: 'Türk zekâ oyunu',
+    hero: 'mangala',
+    how: 'Kuyundaki taşları saat yönünün tersine ek. Son taş haznene düşerse tekrar oyna; rakip kuyusunu çift yaparsan taşları kap. Çok taş toplayan kazanır.',
+  },
+  {
+    id: 'dortlu',
+    icon: '🔴',
+    title: "4'ü Bağla",
+    sub: 'dörtlü sıra',
+    hero: "4'ü bağla",
+    how: 'Pulunu bir sütuna bırak, en alta düşer. Yatay, dikey veya çapraz 4 pulu ilk bağlayan kazanır.',
+  },
 ];
 
 export function Home() {
@@ -43,6 +66,7 @@ export function Home() {
   const hasName = nickname.trim().length > 0;
 
   const [game, setGame] = useState<GameId>('tavla');
+  const [picked, setPicked] = useState(false); // step 1: pick a game → step 2: set it up
   const [mode, setMode] = useState<'classic' | 'backgammon'>('classic');
   const [amiralKolay, setAmiralKolay] = useState(true);
   const meta = GAMES.find((g) => g.id === game)!;
@@ -78,7 +102,7 @@ export function Home() {
             <div className="translate-y-0.5 rotate-6"><Die value={3} size={32} /></div>
           </div>
           <h1 className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl">
-            Arkadaşınla <span className="text-amber-glow">{meta.hero}</span>
+            Arkadaşınla <span className="text-amber-glow">{picked ? meta.hero : 'oyna'}</span>
           </h1>
           <p className="mx-auto mt-3 max-w-md text-white/60">
             Oyununu seç, oda kur, linki paylaş — saniyeler içinde oyna. Ücretsiz, reklamsız, üyelik gerekmez.
@@ -90,96 +114,118 @@ export function Home() {
 
         {accountsEnabled && authUser && <FriendsStrip game={game} />}
 
-        {/* ---- The one card that starts a game ---- */}
-        <div className="card mt-6 space-y-5 p-5 sm:p-6">
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-white/70">Takma adın</label>
-            <input
-              className="input"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder="ör. Kaan"
-              maxLength={20}
-            />
-          </div>
-
-          <div>
-            <span className="mb-1.5 block text-sm font-semibold text-white/70">Oyununu seç</span>
-            <div className="grid grid-cols-3 gap-2">
+        {/* ---- The one card that starts a game: pick → set up ---- */}
+        {!picked ? (
+          <div className="card mt-6 space-y-4 p-5 sm:p-6">
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm font-semibold text-white/70">Oyununu seç</span>
+              <span className="text-[11px] text-white/35">1/2</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {GAMES.map((g) => (
                 <button
                   key={g.id}
-                  onClick={() => setGame(g.id)}
-                  className={`rounded-xl px-2 py-3 text-center transition ${
-                    game === g.id ? 'bg-amber-glow text-ink-900' : 'bg-white/5 text-white/70 hover:bg-white/10'
-                  }`}
+                  onClick={() => {
+                    setGame(g.id);
+                    setPicked(true);
+                  }}
+                  className="group rounded-xl bg-white/5 px-3 py-4 text-center transition hover:bg-amber-glow hover:text-ink-900"
                 >
-                  <div className="text-2xl leading-none">{g.icon}</div>
-                  <div className="mt-1.5 text-sm font-bold leading-tight">{g.title}</div>
-                  <div className={`text-[11px] ${game === g.id ? 'text-ink-900/70' : 'text-white/40'}`}>{g.sub}</div>
+                  <div className="text-3xl leading-none">{g.icon}</div>
+                  <div className="mt-2 font-bold leading-tight">{g.title}</div>
+                  <div className="text-[11px] text-white/40 group-hover:text-ink-900/70">{g.sub}</div>
                 </button>
               ))}
             </div>
           </div>
-
-          {game === 'tavla' ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <span className="mb-1.5 block text-sm font-semibold text-white/70">Kurallar</span>
-                <div className="grid grid-cols-2 gap-2">
-                  <Toggle active={mode === 'classic'} onClick={() => setMode('classic')} title="Klasik" sub="çift zar yok" />
-                  <Toggle active={mode === 'backgammon'} onClick={() => setMode('backgammon')} title="Çift zarlı" sub="doubling cube" />
+        ) : (
+          <div className="card mt-6 space-y-5 p-5 sm:p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="text-3xl leading-none">{meta.icon}</span>
+                <div>
+                  <div className="font-bold leading-tight">{meta.title}</div>
+                  <div className="text-[11px] text-white/40">{meta.sub}</div>
                 </div>
               </div>
-              <div>
-                <span className="mb-1.5 block text-sm font-semibold text-white/70">Maç hedefi</span>
-                <div className="grid grid-cols-4 gap-2">
-                  {TARGETS.map((t) => (
-                    <Toggle key={t} active={target === t} onClick={() => setTarget(t)} title={`${t}`} sub={t === 1 ? 'tek oyun' : 'sayıya'} />
-                  ))}
-                </div>
+              <div className="flex items-center gap-3">
+                <span className="text-[11px] text-white/35">2/2</span>
+                <button className="btn-ghost px-3 py-1.5 text-xs" onClick={() => setPicked(false)}>
+                  ← Oyun değiştir
+                </button>
               </div>
             </div>
-          ) : game === 'amiral' ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <span className="mb-1.5 block text-sm font-semibold text-white/70">Zorluk</span>
-                <div className="grid grid-cols-2 gap-2">
-                  <Toggle active={amiralKolay} onClick={() => setAmiralKolay(true)} title="Kolay" sub="batan geminin çevresi açılır" />
-                  <Toggle active={!amiralKolay} onClick={() => setAmiralKolay(false)} title="Zor" sub="gemiler bitişik olabilir" />
+
+            {game === 'tavla' ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <span className="mb-1.5 block text-sm font-semibold text-white/70">Kurallar</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Toggle active={mode === 'classic'} onClick={() => setMode('classic')} title="Klasik" sub="çift zar yok" />
+                    <Toggle active={mode === 'backgammon'} onClick={() => setMode('backgammon')} title="Çift zarlı" sub="doubling cube" />
+                  </div>
+                </div>
+                <div>
+                  <span className="mb-1.5 block text-sm font-semibold text-white/70">Kaç sayıya? (raund)</span>
+                  <div className="grid grid-cols-4 gap-2">
+                    {TARGETS.map((t) => (
+                      <Toggle key={t} active={target === t} onClick={() => setTarget(t)} title={`${t}`} sub={t === 1 ? 'tek oyun' : 'sayıya'} />
+                    ))}
+                  </div>
                 </div>
               </div>
+            ) : game === 'amiral' ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <span className="mb-1.5 block text-sm font-semibold text-white/70">Zorluk</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Toggle active={amiralKolay} onClick={() => setAmiralKolay(true)} title="Kolay" sub="batan geminin çevresi açılır" />
+                    <Toggle active={!amiralKolay} onClick={() => setAmiralKolay(false)} title="Zor" sub="gemiler bitişik olabilir" />
+                  </div>
+                </div>
+                <div>
+                  <span className="mb-1.5 block text-sm font-semibold text-white/70">Nasıl oynanır?</span>
+                  <p className="rounded-xl bg-white/5 px-3 py-2.5 text-xs leading-relaxed text-white/50">{meta.how}</p>
+                </div>
+              </div>
+            ) : (
               <div>
                 <span className="mb-1.5 block text-sm font-semibold text-white/70">Nasıl oynanır?</span>
                 <p className="rounded-xl bg-white/5 px-3 py-2.5 text-xs leading-relaxed text-white/50">{meta.how}</p>
               </div>
-            </div>
-          ) : (
-            <div>
-              <span className="mb-1.5 block text-sm font-semibold text-white/70">Nasıl oynanır?</span>
-              <p className="rounded-xl bg-white/5 px-3 py-2.5 text-xs leading-relaxed text-white/50">{meta.how}</p>
-            </div>
-          )}
+            )}
 
-          {matchmaking ? (
-            <div className="rounded-xl bg-white/5 p-4 text-center">
-              <p className="animate-pulse text-sm font-semibold text-amber-glow">🎯 Rakip aranıyor…</p>
-              <button className="btn-ghost mt-3 w-full" onClick={cancelMatch}>
-                İptal
-              </button>
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-white/70">Takma adın</label>
+              <input
+                className="input"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="ör. Kaan"
+                maxLength={20}
+              />
             </div>
-          ) : (
-            <div className="grid gap-2 sm:grid-cols-2">
-              <button className="btn-primary py-3" onClick={create} disabled={busy || !hasName}>
-                {busy ? 'Oluşturuluyor…' : '▸ Oda kur ve başla'}
-              </button>
-              <button className="btn-ghost py-3" onClick={() => findMatch(game)} disabled={!hasName}>
-                🎯 Rakip bul
-              </button>
-            </div>
-          )}
-          {!hasName && <p className="text-center text-xs text-white/40">Başlamak için bir takma ad yeter — üyelik gerekmez.</p>}
-        </div>
+
+            {matchmaking ? (
+              <div className="rounded-xl bg-white/5 p-4 text-center">
+                <p className="animate-pulse text-sm font-semibold text-amber-glow">🎯 Rakip aranıyor…</p>
+                <button className="btn-ghost mt-3 w-full" onClick={cancelMatch}>
+                  İptal
+                </button>
+              </div>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2">
+                <button className="btn-primary py-3" onClick={create} disabled={busy || !hasName}>
+                  {busy ? 'Oluşturuluyor…' : '▸ Oda kur ve başla'}
+                </button>
+                <button className="btn-ghost py-3" onClick={() => findMatch(game)} disabled={!hasName}>
+                  🎯 Rakip bul
+                </button>
+              </div>
+            )}
+            {!hasName && <p className="text-center text-xs text-white/40">Başlamak için bir takma ad yeter — üyelik gerekmez.</p>}
+          </div>
+        )}
 
         {/* ---- Secondary: got an invite? ---- */}
         <div className="card mt-3 flex flex-col gap-2 p-4 sm:flex-row sm:items-center">
@@ -223,7 +269,7 @@ export function Home() {
               Bota karşı pratik
             </a>
           </nav>
-          <p className="mt-3">Ücretsiz, üyeliksiz online tavla, dama ve amiral battı — OnlineTavla</p>
+          <p className="mt-3">Ücretsiz, üyeliksiz online tavla, dama, amiral battı, mangala ve 4'ü bağla — OnlineTavla</p>
         </footer>
       </main>
     </div>
