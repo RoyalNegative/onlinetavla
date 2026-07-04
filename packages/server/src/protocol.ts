@@ -5,7 +5,7 @@ import type { Action, GameMode, TavlaView } from '@tavla/engine';
 
 export interface CreatePayload {
   name: string;
-  gameId?: string; // 'tavla' (default) | 'dama' | 'amiral'
+  gameId?: string; // any id in the games registry; 'tavla' is the default
   mode?: GameMode; // tavla only
   targetPoints?: number; // tavla only
   noTouch?: boolean; // amiral only: easy mode (ships can't touch), default true

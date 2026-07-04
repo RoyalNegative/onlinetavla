@@ -116,6 +116,21 @@ input:-webkit-autofill:focus {
   animation: bs-tension 1.6s ease-in-out infinite;
   border-radius: 0.75rem;
 }
+/* 4'ü Bağla: the newest disc falls into its hole. */
+@keyframes dortlu-drop {
+  0% {
+    transform: translateY(-520%);
+  }
+  70% {
+    transform: translateY(0);
+  }
+  85% {
+    transform: translateY(-6%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
 
 @layer components {
   .btn {

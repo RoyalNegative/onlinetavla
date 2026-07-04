@@ -1,18 +1,19 @@
 # 🎲 Tavla — online oyun merkezi, basit, ücretsiz
 
-Arkadaşınla URL üzerinden oynanan online oyun merkezi: **tavla, dama ve amiral
-battı**. Oda kur, linki paylaş, hemen başla. Üyelik **opsiyonel** — istersen
-Google ile giriş yapıp istatistik, Elo puanı ve sıralama kazanırsın; istemezsen
-takma adla oynarsın. Altyapı, ileride başka oyunların (okey, satranç…)
-eklenebileceği şekilde **oyundan bağımsız** kuruldu.
+Arkadaşınla URL üzerinden oynanan online oyun merkezi: **tavla, dama, amiral
+battı, mangala ve 4'ü bağla**. Oda kur, linki paylaş, hemen başla. Üyelik
+**opsiyonel** — istersen Google ile giriş yapıp istatistik, Elo puanı ve
+sıralama kazanırsın; istemezsen takma adla oynarsın. Altyapı, ileride başka
+oyunların (okey, satranç…) eklenebileceği şekilde **oyundan bağımsız** kuruldu.
 
 🌐 **Canlı:** <https://onlinetavla-asaby.com>
 
 ## Özellikler
 
-- **Üç oyun: Tavla, Dama ve Amiral Battı** — aynı lobi/oda/sohbet altyapısını
-  paylaşan, oyundan bağımsız `GameModule` mimarisi. Yenisini eklemek = bir modül
-  yazmak. Amiral Battı'da gizli bilgi (rakip filosu) sunucuda kalır — hile yok.
+- **Beş oyun: Tavla, Dama, Amiral Battı, Mangala ve 4'ü Bağla** — aynı
+  lobi/oda/sohbet altyapısını paylaşan, oyundan bağımsız `GameModule` mimarisi.
+  Yenisini eklemek = bir modül yazmak. Amiral Battı'da gizli bilgi (rakip
+  filosu) sunucuda kalır — hile yok.
 - **Gerçek-zamanlı, otoriter sunucu** — zarları sunucu atar, her hamleyi
   doğrular → hile yok. Siyah oyuncu için tahta otomatik çevrilir.
 - **URL ile oda** veya **🎯 online matchmaking** (rastgele rakip bul).

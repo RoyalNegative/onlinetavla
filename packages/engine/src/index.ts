@@ -66,8 +66,15 @@ export type {
   ShotResult,
 } from './battleship';
 
+export { mangalaModule, createInitialMangala, treasuryOf, pitsOf, oppositeOf, MANGALA_PITS, MANGALA_SEED } from './mangala';
+export type { MangalaState, MangalaAction, MangalaView, MangalaLastMove } from './mangala';
+export { dortluModule, createInitialDortlu, DORTLU_COLS, DORTLU_ROWS } from './dortlu';
+export type { DortluState, DortluAction, DortluView } from './dortlu';
+
 import { battleshipModule } from './battleship';
 import { damaModule } from './dama';
+import { dortluModule } from './dortlu';
+import { mangalaModule } from './mangala';
 import { tavlaModule } from './module';
 
 /** Registry of all hostable games, keyed by id. The server is game-agnostic. */
@@ -75,6 +82,8 @@ export const games: Record<string, import('./module').GameModule<any, any, any, 
   tavla: tavlaModule,
   dama: damaModule,
   amiral: battleshipModule,
+  mangala: mangalaModule,
+  dortlu: dortluModule,
 };
 
-export type GameId = 'tavla' | 'dama' | 'amiral';
+export type GameId = 'tavla' | 'dama' | 'amiral' | 'mangala' | 'dortlu';
