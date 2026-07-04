@@ -26,6 +26,7 @@ const PLAYERS: PlayerInfo[] = [
 export function Practice() {
   const [game, setGame] = useState<GameId>('tavla');
   const [amiralKolay, setAmiralKolay] = useState(true);
+  const [botKolay, setBotKolay] = useState(true); // mangala & dörtlü bot strength
   return (
     <div className="mx-auto flex min-h-full max-w-6xl flex-col">
       <Header
@@ -36,12 +37,14 @@ export function Practice() {
         }
       />
       <PracticeGame
-        key={`${game}:${amiralKolay ? 'k' : 'z'}`}
+        key={`${game}:${amiralKolay ? 'k' : 'z'}:${botKolay ? 'k' : 'z'}`}
         gameId={game}
         game={game}
         setGame={setGame}
         amiralKolay={amiralKolay}
         setAmiralKolay={setAmiralKolay}
+        botKolay={botKolay}
+        setBotKolay={setBotKolay}
       />
     </div>
   );
@@ -53,14 +56,18 @@ function PracticeGame({
   setGame,
   amiralKolay,
   setAmiralKolay,
+  botKolay,
+  setBotKolay,
 }: {
   gameId: GameId;
   game: GameId;
   setGame: (g: GameId) => void;
   amiralKolay: boolean;
   setAmiralKolay: (v: boolean) => void;
+  botKolay: boolean;
+  setBotKolay: (v: boolean) => void;
 }) {
-  const { view, act, restart } = usePractice(gameId, { noTouch: amiralKolay });
+  const { view, act, restart } = usePractice(gameId, { noTouch: amiralKolay, easyBot: botKolay });
   const isDama = gameId === 'dama';
   const isAmiral = gameId === 'amiral';
   const isMangala = gameId === 'mangala';
@@ -122,6 +129,12 @@ function PracticeGame({
             <div className="mb-2 grid grid-cols-2 gap-2">
               <Toggle active={amiralKolay} onClick={() => setAmiralKolay(true)} label="Kolay" />
               <Toggle active={!amiralKolay} onClick={() => setAmiralKolay(false)} label="Zor" />
+            </div>
+          )}
+          {(isMangala || isDortlu) && (
+            <div className="mb-2 grid grid-cols-2 gap-2">
+              <Toggle active={botKolay} onClick={() => setBotKolay(true)} label="Kolay bot" />
+              <Toggle active={!botKolay} onClick={() => setBotKolay(false)} label="Zor bot" />
             </div>
           )}
           <button className="btn-ghost w-full" onClick={restart}>

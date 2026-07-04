@@ -109,7 +109,7 @@ function dortluBotMove(mod: any, s: DortluState): { type: 'drop'; col: number } 
   return { type: 'drop', col: centre ?? cols[0] };
 }
 
-export function usePractice(gameId: GameId, opts?: { noTouch?: boolean }) {
+export function usePractice(gameId: GameId, opts?: { noTouch?: boolean; easyBot?: boolean }) {
   const mod = games[gameId];
   const config =
     gameId === 'tavla'
@@ -119,14 +119,27 @@ export function usePractice(gameId: GameId, opts?: { noTouch?: boolean }) {
         : {};
   const [state, setState] = useState<any>(() => mod.createInitialState(config));
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const easy = opts?.easyBot === true;
 
   function botAction(s: any): any {
     if (mod.isOver(s)) return null;
     if (gameId === 'mangala') {
-      return s.turn !== 1 ? null : mangalaBotMove(mod, s as MangalaState);
+      if (s.turn !== 1) return null;
+      if (easy) {
+        // Beginner-friendly: a random sowable pit, no lookahead.
+        const mv = mod.viewFor(s, 1) as MangalaView;
+        return mv.legalPits.length ? { type: 'sow', pit: pickRandom(mv.legalPits) } : null;
+      }
+      return mangalaBotMove(mod, s as MangalaState);
     }
     if (gameId === 'dortlu') {
-      return s.turn !== 1 ? null : dortluBotMove(mod, s as DortluState);
+      if (s.turn !== 1) return null;
+      if (easy) {
+        // Beginner-friendly: random column — misses wins and doesn't block.
+        const cv = mod.viewFor(s, 1) as DortluView;
+        return cv.legalCols.length ? { type: 'drop', col: pickRandom(cv.legalCols) } : null;
+      }
+      return dortluBotMove(mod, s as DortluState);
     }
     if (gameId === 'amiral') {
       const bs = s as BattleshipState;
