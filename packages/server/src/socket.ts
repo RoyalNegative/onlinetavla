@@ -40,10 +40,11 @@ function cleanGameId(g: unknown): string {
 }
 
 function buildSnapshot(room: Room): RoomSnapshot {
+  const game = games[room.gameId];
   return {
     roomId: room.id,
     gameId: room.gameId,
-    status: games[room.gameId].isOver(room.state) ? 'finished' : room.seats.length < 2 ? 'waiting' : 'playing',
+    status: game.isOver(room.state) ? 'finished' : room.seats.length < game.minPlayers ? 'waiting' : 'playing',
     players: room.seats.map((s) => ({
       seat: s.index,
       color: s.index === 0 ? 'white' : 'black',
@@ -54,7 +55,8 @@ function buildSnapshot(room: Room): RoomSnapshot {
     })),
     spectators: room.spectators.size,
     chat: room.chat,
-    rematch: { votes: room.seats.filter((s) => s.rematchVote).length, needed: 2 },
+    // A rematch needs every seated player's vote (2 in duels, N at big tables).
+    rematch: { votes: room.seats.filter((s) => s.rematchVote).length, needed: Math.max(2, room.seats.length) },
   };
 }
 
@@ -265,9 +267,11 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
     });
 
     // Online matchmaking: queue per game; pair the first two waiting players.
+    // Head-to-head games only — lobby games (secrethitler) gather via links.
     socket.on('matchmake', async (payload: { gameId?: string; name?: string; idToken?: string | null }, cb?: (ack: Ack) => void) => {
       const user = await verifyIdToken(payload?.idToken);
       const gameId = cleanGameId(payload?.gameId);
+      if (games[gameId].maxPlayers !== 2) return cb?.({ ok: false, error: 'not_matchmakable' });
       const me: QueueEntry = { socketId: socket.id, name: cleanName(payload?.name), uid: user?.uid ?? null, avatar: user?.picture ?? null };
       const waiting = (queues.get(gameId) ?? []).filter(
         (e) => e.socketId !== socket.id && io.sockets.sockets.get(e.socketId)?.connected,

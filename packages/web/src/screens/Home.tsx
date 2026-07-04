@@ -57,6 +57,15 @@ const GAMES: { id: GameId; icon: string; title: string; sub: string; hero: strin
     desc: 'Connect Four: pulları sütunlara bırak, yan yana 4 yapan kazanır.',
     how: 'Sırayla bir sütun seçersin, pulun en alttaki boş göze düşer. Yatay, dikey veya çapraz fark etmez — kendi renginden 4 pulu ilk hizalayan kazanır. Basit görünür, iki dakikada öğrenilir.',
   },
+  {
+    id: 'secrethitler',
+    icon: '🕵️',
+    title: 'Secret Hitler',
+    sub: '5-10 kişi · ekipçe',
+    hero: 'Secret Hitler',
+    desc: 'Sosyal blöf oyunu: liberaller Hitler’i arıyor, faşistler gizlice sızıyor.',
+    how: 'Oda kur, linki ekibe gönder (5-10 kişi). Her tur bir başkan şansölye aday gösterir, herkes JA/NEIN oylar; seçilen hükûmet gizli politika kartı koyar. Liberaller 5 liberal politikayla ya da Hitler’i infazla kazanır; faşistler 6 faşist politikayla ya da Hitler’i şansölye seçtirerek.',
+  },
 ];
 
 export function Home() {
@@ -230,6 +239,11 @@ export function Home() {
                   İptal
                 </button>
               </div>
+            ) : game === 'secrethitler' ? (
+              // Lobby game: no 1v1 matchmaking — you gather your own crew.
+              <button className="btn-primary w-full py-3" onClick={create} disabled={busy || !hasName}>
+                {busy ? 'Oluşturuluyor…' : '▸ Lobi kur, ekibi topla (5-10 kişi)'}
+              </button>
             ) : (
               <div className="grid gap-2 sm:grid-cols-2">
                 <button className="btn-primary py-3" onClick={create} disabled={busy || !hasName}>

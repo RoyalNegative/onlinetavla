@@ -3,7 +3,7 @@
 // games (tavla's dice/moves, dama's moves/captures, amiral's shots).
 
 import { useEffect, useRef } from 'react';
-import type { BattleshipView, DamaView, DortluView, MangalaView, TavlaView } from '@tavla/engine';
+import type { BattleshipView, DamaView, DortluView, MangalaView, SHView, TavlaView } from '@tavla/engine';
 import { sfx } from './lib/sound';
 import type { RoomUpdate } from './protocol';
 
@@ -31,14 +31,25 @@ export function useGameEffects(update: RoomUpdate | null): void {
   useEffect(() => {
     if (!update) return;
     const p = prev.current;
-    const you = update.view.youAre;
+    // Secret Hitler's view has no youAre/color — every other game does.
+    const you = 'youAre' in update.view ? update.view.youAre : null;
     const yourTurn = update.view.yourTurn;
     let moveSeq = p.moveSeq;
     let dice = p.dice;
     let barTotal = p.barTotal;
     let over = p.over;
 
-    if (update.room.gameId === 'amiral') {
+    if (update.room.gameId === 'secrethitler') {
+      const v = update.view as SHView;
+      moveSeq = v.moveSeq;
+      if (moveSeq !== p.moveSeq && v.phase !== 'lobby') sfx.move();
+      over = v.phase === 'over';
+      if (over && !p.over && v.yourRole && v.winner) {
+        const myTeam = v.yourRole === 'liberal' ? 'liberal' : 'fascist';
+        if (v.winner === myTeam) sfx.win();
+        else sfx.lose();
+      }
+    } else if (update.room.gameId === 'amiral') {
       const v = update.view as BattleshipView;
       moveSeq = v.moveSeq;
       if (moveSeq !== p.moveSeq && v.lastShot) {

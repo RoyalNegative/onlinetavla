@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { BattleshipView, DamaView, DortluView, MangalaView, TavlaView } from '@tavla/engine';
+import type { BattleshipView, DamaView, DortluView, MangalaView, SHView, TavlaView } from '@tavla/engine';
 import { treasuryOf } from '@tavla/engine';
 import { AddFriendChip } from '../components/AddFriendChip';
 import { BattleshipBoard, useBattleshipFx } from '../components/BattleshipBoard';
@@ -14,6 +14,7 @@ import { GenericPanel } from '../components/GenericPanel';
 import { Header } from '../components/Header';
 import { MangalaBoard } from '../components/MangalaBoard';
 import { PlayerPanel } from '../components/PlayerPanel';
+import { SecretHitlerBoard, SecretRolePanel } from '../components/SecretHitlerBoard';
 import { navigate } from '../router';
 import { useStore } from '../store';
 import { useGameEffects } from '../useGameEffects';
@@ -39,11 +40,13 @@ export function Room({ roomId }: { roomId: string }) {
   const isAmiral = update?.room.gameId === 'amiral';
   const isMangala = update?.room.gameId === 'mangala';
   const isDortlu = update?.room.gameId === 'dortlu';
+  const isSH = update?.room.gameId === 'secrethitler';
   // Only read inside the inThisRoom branch, where `update` is non-null.
   const tview = update?.view as TavlaView;
   const dview = update?.view as DamaView;
   const mview = update?.view as MangalaView;
   const cview = update?.view as DortluView;
+  const shview = update?.view as SHView;
 
   // Amiral: render (and sound) one bomb-flight behind the live view so the
   // result only appears when the bomb lands.
@@ -84,16 +87,28 @@ export function Room({ roomId }: { roomId: string }) {
             style={{
               maxWidth: isAmiral
                 ? '900px'
-                : isMangala
-                  ? '760px'
-                  : isDortlu
-                    ? '560px'
-                    : isDama
-                      ? 'calc(100dvh - 150px)'
-                      : 'calc((100dvh - 150px) * 5 / 3)',
+                : isSH
+                  ? '860px'
+                  : isMangala
+                    ? '760px'
+                    : isDortlu
+                      ? '560px'
+                      : isDama
+                        ? 'calc(100dvh - 150px)'
+                        : 'calc((100dvh - 150px) * 5 / 3)',
             }}
           >
-            {isAmiral ? (
+            {isSH ? (
+              <SecretHitlerBoard
+                view={shview}
+                players={update.room.players}
+                youSeat={update.you.seat}
+                roomId={roomId}
+                onAction={sendAction}
+                onRematch={voteRematch}
+                rematch={update.room.rematch}
+              />
+            ) : isAmiral ? (
               <BattleshipBoard view={bview} fx={bfx} onAction={sendAction} />
             ) : isMangala ? (
               <MangalaBoard view={mview} onAction={sendAction} />
@@ -108,11 +123,17 @@ export function Room({ roomId }: { roomId: string }) {
                 onAction={sendAction}
               />
             )}
-            {update.room.status === 'waiting' && <WaitingOverlay roomId={roomId} />}
+            {/* SH's lobby is its own UI with the invite link built in. */}
+            {update.room.status === 'waiting' && !isSH && <WaitingOverlay roomId={roomId} />}
           </div>
 
           <aside className="flex min-h-0 flex-col gap-4">
-            {isAmiral ? (
+            {isSH ? (
+              <SecretRolePanel
+                view={shview}
+                nameOf={(seat) => update.room.players.find((p) => p.seat === seat)?.name ?? `Oyuncu ${seat + 1}`}
+              />
+            ) : isAmiral ? (
               <BattleshipPanel
                 view={bview}
                 players={update.room.players}
@@ -171,7 +192,7 @@ export function Room({ roomId }: { roomId: string }) {
                 </div>
               </>
             )}
-            {update.room.status === 'waiting' && <InvitePanel roomId={roomId} />}
+            {update.room.status === 'waiting' && !isSH && <InvitePanel roomId={roomId} />}
             <AddFriendChip players={update.room.players} youSeat={update.you.seat} />
             <Chat messages={update.room.chat} onSend={sendChat} />
           </aside>

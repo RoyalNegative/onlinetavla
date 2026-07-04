@@ -70,12 +70,26 @@ export { mangalaModule, createInitialMangala, treasuryOf, pitsOf, oppositeOf, MA
 export type { MangalaState, MangalaAction, MangalaView, MangalaLastMove } from './mangala';
 export { dortluModule, createInitialDortlu, DORTLU_COLS, DORTLU_ROWS } from './dortlu';
 export type { DortluState, DortluAction, DortluView } from './dortlu';
+export { secretHitlerModule, createInitialSecretHitler, shPowers, SH_MIN_PLAYERS, SH_MAX_PLAYERS } from './secrethitler';
+export type {
+  SHState,
+  SHAction,
+  SHView,
+  SHRole,
+  SHParty,
+  SHPolicy,
+  SHPower,
+  SHPhase,
+  SHLogEntry,
+  SHWinReason,
+} from './secrethitler';
 
 import { battleshipModule } from './battleship';
 import { damaModule } from './dama';
 import { dortluModule } from './dortlu';
 import { mangalaModule } from './mangala';
 import { tavlaModule } from './module';
+import { secretHitlerModule } from './secrethitler';
 
 /** Registry of all hostable games, keyed by id. The server is game-agnostic. */
 export const games: Record<string, import('./module').GameModule<any, any, any, any>> = {
@@ -84,6 +98,7 @@ export const games: Record<string, import('./module').GameModule<any, any, any, 
   amiral: battleshipModule,
   mangala: mangalaModule,
   dortlu: dortluModule,
+  secrethitler: secretHitlerModule,
 };
 
-export type GameId = 'tavla' | 'dama' | 'amiral' | 'mangala' | 'dortlu';
+export type GameId = 'tavla' | 'dama' | 'amiral' | 'mangala' | 'dortlu' | 'secrethitler';

@@ -15,9 +15,14 @@ export interface GameModule<State, ActionT, Config, View> {
   minPlayers: number;
   maxPlayers: number;
   createInitialState(config: Config): State;
-  /** Apply an action taken by the player in seat `seat` (0-indexed). */
-  applyAction(state: State, action: ActionT, seat: number, rng: Rng): State;
+  /** Apply an action taken by the player in seat `seat` (0-indexed). `ctx`
+   *  carries room facts the state can't know (e.g. how many players are
+   *  seated — needed by lobby games to start). */
+  applyAction(state: State, action: ActionT, seat: number, rng: Rng, ctx?: { seats: number }): State;
   isOver(state: State): boolean;
+  /** Lobby games only: whether the room should still seat newcomers (e.g.
+   *  false once roles are dealt). Absent = seat up to maxPlayers, always. */
+  acceptsNewPlayers?(state: State): boolean;
   /** Redact state for a viewer (a seat index, or null for a spectator). */
   viewFor(state: State, seat: number | null): View;
   /** An action the server should auto-apply after a short delay (e.g. tavla's

@@ -115,8 +115,11 @@ export class RoomManager {
       const seat = room.seats.find((s) => s.uid === info.uid && !s.connected);
       if (seat) return seatThisSocket(seat);
     }
-    // 3) take a free seat
-    if (room.seats.length < 2) {
+    // 3) take a free seat — up to the module's table size, and only while the
+    //    game still admits newcomers (lobby games close seating at start).
+    const game = games[room.gameId];
+    const open = game.acceptsNewPlayers?.(room.state) ?? true;
+    if (room.seats.length < game.maxPlayers && open) {
       const seat: Seat = {
         index: room.seats.length,
         token: newToken(),
@@ -141,16 +144,18 @@ export class RoomManager {
   }
 
   applyAction(room: Room, seatIndex: number, action: unknown): void {
-    room.state = games[room.gameId].applyAction(room.state, action, seatIndex, cryptoRng);
+    room.state = games[room.gameId].applyAction(room.state, action, seatIndex, cryptoRng, {
+      seats: room.seats.length,
+    });
     room.lastActive = Date.now();
   }
 
   voteRematch(room: Room, seatIndex: number): boolean {
     const seat = room.seats.find((s) => s.index === seatIndex);
     if (seat) seat.rematchVote = true;
-    const both = room.seats.length === 2 && room.seats.every((s) => s.rematchVote);
-    if (both) this.resetMatch(room);
-    return both;
+    const all = room.seats.length >= games[room.gameId].minPlayers && room.seats.every((s) => s.rematchVote);
+    if (all) this.resetMatch(room);
+    return all;
   }
 
   resetMatch(room: Room): void {
@@ -172,8 +177,17 @@ export class RoomManager {
     if (!room) return undefined;
     const seat = this.seatForSocket(room, socketId);
     if (seat) {
-      seat.socketId = null;
-      seat.connected = false;
+      // Lobby games: a seat that leaves before the game starts is dropped
+      // entirely (and seats reindexed) so a ghost never gets dealt a role.
+      // Started games keep the seat for token/uid reconnects, as before.
+      const inLobby = games[room.gameId].acceptsNewPlayers?.(room.state) === true;
+      if (inLobby) {
+        room.seats = room.seats.filter((s) => s !== seat);
+        room.seats.forEach((s, i) => (s.index = i));
+      } else {
+        seat.socketId = null;
+        seat.connected = false;
+      }
     } else {
       room.spectators.delete(socketId);
     }
@@ -183,7 +197,7 @@ export class RoomManager {
 
   status(room: Room): 'waiting' | 'playing' | 'finished' {
     if (games[room.gameId].isOver(room.state)) return 'finished';
-    return room.seats.length < 2 ? 'waiting' : 'playing';
+    return room.seats.length < games[room.gameId].minPlayers ? 'waiting' : 'playing';
   }
 
   newId(): string {
