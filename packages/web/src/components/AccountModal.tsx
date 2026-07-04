@@ -2,7 +2,7 @@
 // (with presence + invite to play), and the daily tournament. The perks that
 // reward registering.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { GameId } from '@tavla/engine';
 import {
@@ -53,27 +53,40 @@ export function AccountModal({ initialTab, onClose }: { initialTab: Tab; onClose
   // you can always see where you stand.
   const inBoard = board.some((e) => e.uid === authUser?.uid);
 
+  // Keep the active tab visible even when the strip scrolls (e.g. opening
+  // straight to a right-hand tab like Profilim on a narrow phone).
+  const stripRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    stripRef.current?.querySelector('[data-active="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }, [tab]);
+
   // Portal to <body>: callers render this inside .card containers whose
   // backdrop-filter would otherwise trap the fixed overlay in their stacking
   // context (the modal appeared *behind* the cards below it).
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div className="card w-full max-w-lg overflow-hidden p-5" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-start justify-between gap-2">
-          <div className="flex flex-wrap gap-1.5">
+        {/* Title bar owns the ✕ so the tab strip below gets the full width and
+            never wraps a lone tab; the strip scrolls sideways when it must. */}
+        <div className="mb-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-sm font-bold text-white/80">Hesabım</span>
+            <button onClick={onClose} className="text-white/50 hover:text-white" aria-label="Kapat">
+              ✕
+            </button>
+          </div>
+          <div ref={stripRef} className="scroll-thin -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
             {TABS.map((t) => (
               <button
                 key={t.key}
+                data-active={tab === t.key}
                 onClick={() => setTab(t.key)}
-                className={`rounded-lg px-2.5 py-1.5 text-sm font-semibold ${tab === t.key ? 'bg-amber-glow text-ink-900' : 'bg-white/5 text-white/70'}`}
+                className={`shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm font-semibold ${tab === t.key ? 'bg-amber-glow text-ink-900' : 'bg-white/5 text-white/70'}`}
               >
                 {t.label}
               </button>
             ))}
           </div>
-          <button onClick={onClose} className="text-white/50 hover:text-white">
-            ✕
-          </button>
         </div>
 
         {tab === 'leaderboard' && (
