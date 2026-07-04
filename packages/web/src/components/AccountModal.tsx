@@ -24,6 +24,8 @@ import { useStore } from '../store';
 
 type Tab = 'leaderboard' | 'profile' | 'matches' | 'friends' | 'tournament';
 
+const MEDALS = ['🥇', '🥈', '🥉'];
+
 const TABS: { key: Tab; label: string }[] = [
   { key: 'leaderboard', label: '🏆 Sıralama' },
   { key: 'tournament', label: '🎪 Turnuva' },
@@ -47,8 +49,8 @@ export function AccountModal({ initialTab, onClose }: { initialTab: Tab; onClose
   // backdrop-filter would otherwise trap the fixed overlay in their stacking
   // context (the modal appeared *behind* the cards below it).
   return createPortal(
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4" onClick={onClose}>
-      <div className="card w-full max-w-lg p-5" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <div className="card w-full max-w-lg overflow-hidden p-5" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-start justify-between gap-2">
           <div className="flex flex-wrap gap-1.5">
             {TABS.map((t) => (
@@ -70,11 +72,14 @@ export function AccountModal({ initialTab, onClose }: { initialTab: Tab; onClose
           <div className="scroll-thin max-h-80 space-y-1 overflow-y-auto">
             {board.length === 0 && <p className="text-sm text-white/40">Henüz sıralama yok. İlk olan sen ol!</p>}
             {board.map((e, i) => (
-              <div key={e.uid} className="flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2">
-                <span className="w-6 text-center font-bold text-white/50">{i + 1}</span>
-                <span className="flex-1 truncate font-semibold">{e.handle}</span>
-                <span className="text-xs text-white/50">{e.wins}G {e.losses}M · %{winRate(e)}</span>
-                <span className="w-12 text-right font-bold text-amber-glow">{e.rating}</span>
+              <div
+                key={e.uid}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 ${e.uid === authUser?.uid ? 'bg-amber-glow/15 ring-1 ring-amber-glow/40' : 'bg-white/5'}`}
+              >
+                <span className="w-7 shrink-0 text-center font-bold text-white/50">{MEDALS[i] ?? i + 1}</span>
+                <span className="min-w-0 flex-1 truncate font-semibold">{e.handle}</span>
+                <span className="shrink-0 text-xs tabular-nums text-white/50">{e.wins}G {e.losses}M · %{winRate(e)}</span>
+                <span className="w-12 shrink-0 text-right font-bold text-amber-glow">{e.rating}</span>
               </div>
             ))}
           </div>
@@ -142,17 +147,26 @@ function MatchesTab({ authed }: { authed: boolean }) {
     if (authed) void fetchMyMatches().then(setMatches);
   }, [authed]);
   if (!authed) return <p className="text-sm text-white/50">Maç geçmişi için giriş yap.</p>;
+  const wins = matches.filter((m) => m.won).length;
   return (
-    <div className="scroll-thin max-h-80 space-y-1 overflow-y-auto">
-      {matches.length === 0 && <p className="text-sm text-white/40">Henüz maç yok.</p>}
-      {matches.map((m, i) => (
-        <div key={i} className="flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2 text-sm">
-          <span className={`font-bold ${m.won ? 'text-emerald-400' : 'text-rose-400'}`}>{m.won ? 'G' : 'M'}</span>
-          <span className="w-10 text-xs text-white/40">{m.gameId === 'dama' ? 'Dama' : m.gameId === 'amiral' ? 'Amiral' : 'Tavla'}</span>
-          <span className="flex-1 truncate">vs {m.opponentName}</span>
-          <span className="tabular-nums text-white/60">{m.myScore}–{m.opponentScore}</span>
-        </div>
-      ))}
+    <div className="space-y-2">
+      {matches.length > 0 && (
+        <p className="text-xs text-white/40">
+          Son {matches.length} maç · <span className="text-emerald-400">{wins}G</span>{' '}
+          <span className="text-rose-400">{matches.length - wins}M</span>
+        </p>
+      )}
+      <div className="scroll-thin max-h-80 space-y-1 overflow-y-auto">
+        {matches.length === 0 && <p className="text-sm text-white/40">Henüz maç yok.</p>}
+        {matches.map((m, i) => (
+          <div key={i} className="flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2 text-sm">
+            <span className={`shrink-0 font-bold ${m.won ? 'text-emerald-400' : 'text-rose-400'}`}>{m.won ? 'G' : 'M'}</span>
+            <span className="w-10 shrink-0 text-xs text-white/40">{m.gameId === 'dama' ? 'Dama' : m.gameId === 'amiral' ? 'Amiral' : 'Tavla'}</span>
+            <span className="min-w-0 flex-1 truncate">vs {m.opponentName}</span>
+            <span className="shrink-0 tabular-nums text-white/60">{m.myScore}–{m.opponentScore}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -161,6 +175,7 @@ function FriendsTab({ authed }: { authed: boolean }) {
   const inviteFriend = useStore((s) => s.inviteFriend);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [handle, setHandle] = useState('');
+  const [filter, setFilter] = useState('');
   const [err, setErr] = useState('');
   const [game, setGame] = useState<GameId>('tavla');
 
@@ -170,6 +185,14 @@ function FriendsTab({ authed }: { authed: boolean }) {
   }, [authed]);
 
   if (!authed) return <p className="text-sm text-white/50">Arkadaş eklemek için giriş yap.</p>;
+
+  // Online friends first, then alphabetical; filter by handle. Keeps a long list
+  // usable — the people you can actually invite float to the top.
+  const q = filter.trim().toLowerCase();
+  const shown = friends
+    .filter((f) => !q || f.handle.toLowerCase().includes(q))
+    .sort((a, b) => Number(b.online) - Number(a.online) || a.handle.localeCompare(b.handle));
+  const onlineCount = friends.filter((f) => f.online).length;
 
   async function add() {
     setErr('');
@@ -198,16 +221,34 @@ function FriendsTab({ authed }: { authed: boolean }) {
         <button onClick={() => setGame('amiral')} className={`rounded px-2 py-0.5 ${game === 'amiral' ? 'bg-amber-glow text-ink-900' : 'bg-white/5'}`}>Amiral</button>
       </div>
 
+      {friends.length > 8 && (
+        <input
+          className="input py-2"
+          placeholder="Arkadaş ara…"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+        />
+      )}
+      {friends.length > 0 && (
+        <div className="flex items-center justify-between text-xs text-white/40">
+          <span>
+            {friends.length} arkadaş · <span className="text-emerald-400">{onlineCount} çevrimiçi</span>
+          </span>
+          {q && <span>{shown.length} sonuç</span>}
+        </div>
+      )}
+
       <div className="scroll-thin max-h-64 space-y-1 overflow-y-auto">
         {friends.length === 0 && <p className="text-sm text-white/40">Henüz arkadaş yok. Handle ile ekle.</p>}
-        {friends.map((f) => (
+        {friends.length > 0 && shown.length === 0 && <p className="text-sm text-white/40">Eşleşen arkadaş yok.</p>}
+        {shown.map((f) => (
           <div key={f.uid} className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ background: f.online ? '#34d399' : '#6b7280' }} />
-            <span className="flex-1 truncate font-semibold">{f.handle}</span>
-            <button className="rounded bg-amber-glow px-2 py-1 text-xs font-bold text-ink-900 disabled:opacity-40" disabled={!f.online} onClick={() => inviteFriend(f.uid, game)}>
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.online ? '#34d399' : '#6b7280' }} />
+            <span className="min-w-0 flex-1 truncate font-semibold">{f.handle}</span>
+            <button className="shrink-0 rounded bg-amber-glow px-2 py-1 text-xs font-bold text-ink-900 disabled:opacity-40" disabled={!f.online} onClick={() => inviteFriend(f.uid, game)}>
               Çağır
             </button>
-            <button className="text-white/40 hover:text-rose-400" onClick={async () => { await apiRemoveFriend(f.uid); reload(); }}>
+            <button className="shrink-0 text-white/40 hover:text-rose-400" onClick={async () => { await apiRemoveFriend(f.uid); reload(); }}>
               ✕
             </button>
           </div>
@@ -253,9 +294,9 @@ function TournamentTab() {
             {data.standings.length === 0 && <p className="text-sm text-white/40">Henüz katılan yok.</p>}
             {data.standings.map((s, i) => (
               <div key={s.uid} className={`flex items-center gap-3 rounded-lg px-3 py-2 ${s.uid === authUser?.uid ? 'bg-amber-glow/15 ring-1 ring-amber-glow/40' : 'bg-white/5'}`}>
-                <span className="w-6 text-center font-bold text-white/50">{i + 1}</span>
-                <span className="flex-1 truncate font-semibold">{s.handle}</span>
-                <span className="font-bold text-amber-glow">{s.points} puan</span>
+                <span className="w-7 shrink-0 text-center font-bold text-white/50">{MEDALS[i] ?? i + 1}</span>
+                <span className="min-w-0 flex-1 truncate font-semibold">{s.handle}</span>
+                <span className="shrink-0 font-bold text-amber-glow">{s.points} puan</span>
               </div>
             ))}
           </div>
