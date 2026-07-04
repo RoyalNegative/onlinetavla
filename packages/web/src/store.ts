@@ -93,6 +93,10 @@ export const useStore = create<Store>((set, get) => ({
       if (get().authUser) void announcePresence();
     });
     socket.on('disconnect', () => set({ connected: false, matchmaking: false }));
+    // The socket starts connecting at module load; on a fast handshake its
+    // 'connect' can fire before this subscription exists. Without this sync
+    // `connected` stays false forever and the room join never happens.
+    if (socket.connected) set({ connected: true });
     socket.on('room:update', (u: RoomUpdate) => set({ update: u }));
     socket.on('matchmake:found', (p: { roomId: string; token?: string }) => {
       if (p.token) localStorage.setItem(tokenKey(p.roomId), p.token);
