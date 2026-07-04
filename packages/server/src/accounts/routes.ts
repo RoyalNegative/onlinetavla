@@ -12,6 +12,7 @@ import {
   getLeaderboard,
   getMatchHistory,
   getProfile,
+  getRank,
   joinTournament,
   listFriends,
   removeFriend,
@@ -42,7 +43,8 @@ export function accountsRouter(): Router {
     if (!uid) return res.status(401).json({ error: 'unauthorized' });
     const user = await verifyIdToken(req.headers.authorization?.slice(7));
     const profile = await ensureProfile(uid, user?.name ?? 'Oyuncu', user?.picture ?? null);
-    return res.json({ profile });
+    const rank = await getRank(uid);
+    return res.json({ profile, rank });
   });
 
   router.post('/me', async (req: Request, res: Response) => {

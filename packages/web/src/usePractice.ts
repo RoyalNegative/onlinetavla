@@ -5,8 +5,18 @@
 // can follow along.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { games, mathRng, randomFleet } from '@tavla/engine';
-import type { BattleshipState, BattleshipView, DamaView, GameId, TavlaView } from '@tavla/engine';
+import { games, mathRng, randomFleet, treasuryOf } from '@tavla/engine';
+import type {
+  BattleshipState,
+  BattleshipView,
+  DamaView,
+  DortluState,
+  DortluView,
+  GameId,
+  MangalaState,
+  MangalaView,
+  TavlaView,
+} from '@tavla/engine';
 import { BOMB_FALL_MS, BOMB_FALL_SLOW_MS, BOOM_MS, isSlowShot } from './components/BattleshipBoard';
 
 function pickRandom<T>(arr: T[]): T {
@@ -60,6 +70,45 @@ function amiralBotShot(s: BattleshipState): number {
   return pickRandom(parity.length ? parity : unshot);
 }
 
+// ---- Mangala bot: greedy 1-ply ----
+// Try each sowable pit; value a move by the stones it banks, with a big bonus
+// for landing in your treasury (a free extra turn). Simple but plays sensibly.
+function mangalaBotMove(mod: any, s: MangalaState): { type: 'sow'; pit: number } | null {
+  const view = mod.viewFor(s, 1) as MangalaView;
+  if (!view.legalPits.length) return null;
+  const bank = treasuryOf(1);
+  let best = view.legalPits[0];
+  let bestScore = -Infinity;
+  for (const pit of view.legalPits) {
+    const ns = mod.applyAction(s, { type: 'sow', pit }, 1, mathRng) as MangalaState;
+    const gain = ns.pits[bank] - s.pits[bank];
+    const score = gain + (ns.lastMove?.extraTurn ? 100 : 0) + Math.random() * 0.1;
+    if (score > bestScore) {
+      bestScore = score;
+      best = pit;
+    }
+  }
+  return { type: 'sow', pit: best };
+}
+
+// ---- Dörtlü (Connect Four) bot: win, else block, else favour the centre ----
+function dortluBotMove(mod: any, s: DortluState): { type: 'drop'; col: number } | null {
+  const view = mod.viewFor(s, 1) as DortluView;
+  const cols = view.legalCols;
+  if (!cols.length) return null;
+  for (const col of cols) {
+    const ns = mod.applyAction(s, { type: 'drop', col }, 1, mathRng) as DortluState;
+    if (ns.winner === 1) return { type: 'drop', col }; // take the win
+  }
+  for (const col of cols) {
+    // Would the opponent win here next? Pretend it's their turn and block it.
+    const ns = mod.applyAction({ ...s, turn: 0 }, { type: 'drop', col }, 0, mathRng) as DortluState;
+    if (ns.winner === 0) return { type: 'drop', col };
+  }
+  const centre = [3, 2, 4, 1, 5, 0, 6].find((c) => cols.includes(c));
+  return { type: 'drop', col: centre ?? cols[0] };
+}
+
 export function usePractice(gameId: GameId, opts?: { noTouch?: boolean }) {
   const mod = games[gameId];
   const config =
@@ -73,6 +122,12 @@ export function usePractice(gameId: GameId, opts?: { noTouch?: boolean }) {
 
   function botAction(s: any): any {
     if (mod.isOver(s)) return null;
+    if (gameId === 'mangala') {
+      return s.turn !== 1 ? null : mangalaBotMove(mod, s as MangalaState);
+    }
+    if (gameId === 'dortlu') {
+      return s.turn !== 1 ? null : dortluBotMove(mod, s as DortluState);
+    }
     if (gameId === 'amiral') {
       const bs = s as BattleshipState;
       if (bs.phase === 'placing') return bs.fleets[1] ? null : { type: 'place', ships: randomFleet(mathRng, bs.noTouch) };
@@ -154,6 +209,11 @@ export function usePractice(gameId: GameId, opts?: { noTouch?: boolean }) {
   }, []);
 
   // Memoized so consumers (e.g. useBattleshipFx) can key effects on identity.
-  const view = useMemo(() => mod.viewFor(state, 0), [mod, state]) as TavlaView | DamaView | BattleshipView;
+  const view = useMemo(() => mod.viewFor(state, 0), [mod, state]) as
+    | TavlaView
+    | DamaView
+    | BattleshipView
+    | MangalaView
+    | DortluView;
   return { view, act, restart };
 }

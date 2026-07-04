@@ -51,10 +51,12 @@ export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
   }
 }
 
-export async function fetchMyProfile(): Promise<LeaderboardEntry | null> {
+export async function fetchMyProfile(): Promise<(LeaderboardEntry & { rank: number | null }) | null> {
   const res = await fetch('/api/me', { headers: await authHeaders() });
   if (!res.ok) return null;
-  return (await res.json()).profile as LeaderboardEntry;
+  const data = await res.json();
+  if (!data.profile) return null;
+  return { ...(data.profile as LeaderboardEntry), rank: (data.rank ?? null) as number | null };
 }
 
 export async function fetchMyMatches(): Promise<MatchRecord[]> {

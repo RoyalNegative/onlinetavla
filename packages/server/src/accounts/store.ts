@@ -286,6 +286,15 @@ export async function getProfile(uid: string): Promise<UserStats | null> {
   return snap.exists ? (snap.data() as UserStats) : null;
 }
 
+/** 1-based global rank by rating (how many players sit strictly above you, +1). */
+export async function getRank(uid: string): Promise<number | null> {
+  if (!accountsEnabled()) return null;
+  const me = await getProfile(uid);
+  if (!me) return null;
+  const above = await db().collection('users').where('rating', '>', me.rating).count().get();
+  return above.data().count + 1;
+}
+
 export async function getMatchHistory(uid: string, limit = 20): Promise<unknown[]> {
   if (!accountsEnabled()) return [];
   const snap = await db()

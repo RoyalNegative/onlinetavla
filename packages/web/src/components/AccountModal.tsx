@@ -38,12 +38,20 @@ export function AccountModal({ initialTab, onClose }: { initialTab: Tab; onClose
   const authUser = useStore((s) => s.authUser);
   const [tab, setTab] = useState<Tab>(initialTab);
   const [board, setBoard] = useState<LeaderboardEntry[]>([]);
+  const [me, setMe] = useState<(LeaderboardEntry & { rank: number | null }) | null>(null);
 
   useEffect(() => {
     void fetchLeaderboard().then(setBoard);
   }, []);
+  useEffect(() => {
+    if (authUser) void fetchMyProfile().then(setMe);
+    else setMe(null);
+  }, [authUser]);
 
   const winRate = (e: { wins: number; games: number }) => (e.games ? Math.round((e.wins / e.games) * 100) : 0);
+  // Pin your own row below the top-50 board when you didn't make the cut, so
+  // you can always see where you stand.
+  const inBoard = board.some((e) => e.uid === authUser?.uid);
 
   // Portal to <body>: callers render this inside .card containers whose
   // backdrop-filter would otherwise trap the fixed overlay in their stacking
@@ -69,19 +77,19 @@ export function AccountModal({ initialTab, onClose }: { initialTab: Tab; onClose
         </div>
 
         {tab === 'leaderboard' && (
-          <div className="scroll-thin max-h-80 space-y-1 overflow-y-auto">
-            {board.length === 0 && <p className="text-sm text-white/40">Henüz sıralama yok. İlk olan sen ol!</p>}
-            {board.map((e, i) => (
-              <div
-                key={e.uid}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 ${e.uid === authUser?.uid ? 'bg-amber-glow/15 ring-1 ring-amber-glow/40' : 'bg-white/5'}`}
-              >
-                <span className="w-7 shrink-0 text-center font-bold text-white/50">{MEDALS[i] ?? i + 1}</span>
-                <span className="min-w-0 flex-1 truncate font-semibold">{e.handle}</span>
-                <span className="shrink-0 text-xs tabular-nums text-white/50">{e.wins}G {e.losses}M · %{winRate(e)}</span>
-                <span className="w-12 shrink-0 text-right font-bold text-amber-glow">{e.rating}</span>
-              </div>
-            ))}
+          <div className="space-y-1">
+            <div className="scroll-thin max-h-80 space-y-1 overflow-y-auto">
+              {board.length === 0 && <p className="text-sm text-white/40">Henüz sıralama yok. İlk olan sen ol!</p>}
+              {board.map((e, i) => (
+                <LeaderRow key={e.uid} rank={MEDALS[i] ?? String(i + 1)} entry={e} winRate={winRate} mine={e.uid === authUser?.uid} />
+              ))}
+            </div>
+            {me && me.rank && !inBoard && board.length > 0 && (
+              <>
+                <div className="text-center text-xs text-white/25">···</div>
+                <LeaderRow rank={String(me.rank)} entry={me} winRate={winRate} mine />
+              </>
+            )}
           </div>
         )}
 
@@ -96,7 +104,7 @@ export function AccountModal({ initialTab, onClose }: { initialTab: Tab; onClose
 }
 
 function ProfileTab({ authed, winRate }: { authed: boolean; winRate: (e: { wins: number; games: number }) => number }) {
-  const [profile, setProfile] = useState<LeaderboardEntry | null>(null);
+  const [profile, setProfile] = useState<(LeaderboardEntry & { rank: number | null }) | null>(null);
   const [handle, setHandle] = useState('');
   const [saved, setSaved] = useState(false);
 
@@ -115,9 +123,10 @@ function ProfileTab({ authed, winRate }: { authed: boolean; winRate: (e: { wins:
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3 text-center">
         <Stat label="Puan (Elo)" value={profile.rating} />
+        {profile.rank != null && <Stat label="Sıra" value={profile.rank} prefix="#" />}
+        <Stat label="Kazanma %" value={winRate(profile)} />
         <Stat label="Galibiyet" value={profile.wins} />
         <Stat label="Mağlubiyet" value={profile.losses} />
-        <Stat label="Kazanma %" value={winRate(profile)} />
         <Stat label="Toplam mars" value={profile.gammons} />
         <Stat label="En iyi seri" value={profile.bestStreak} />
       </div>
@@ -244,6 +253,7 @@ function FriendsTab({ authed }: { authed: boolean }) {
         {shown.map((f) => (
           <div key={f.uid} className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.online ? '#34d399' : '#6b7280' }} />
+            <Avatar url={f.avatar} name={f.handle} className="h-7 w-7" />
             <span className="min-w-0 flex-1 truncate font-semibold">{f.handle}</span>
             <button className="shrink-0 rounded bg-amber-glow px-2 py-1 text-xs font-bold text-ink-900 disabled:opacity-40" disabled={!f.online} onClick={() => inviteFriend(f.uid, game)}>
               Çağır
@@ -295,6 +305,7 @@ function TournamentTab() {
             {data.standings.map((s, i) => (
               <div key={s.uid} className={`flex items-center gap-3 rounded-lg px-3 py-2 ${s.uid === authUser?.uid ? 'bg-amber-glow/15 ring-1 ring-amber-glow/40' : 'bg-white/5'}`}>
                 <span className="w-7 shrink-0 text-center font-bold text-white/50">{MEDALS[i] ?? i + 1}</span>
+                <Avatar url={s.avatar} name={s.handle} />
                 <span className="min-w-0 flex-1 truncate font-semibold">{s.handle}</span>
                 <span className="shrink-0 font-bold text-amber-glow">{s.points} puan</span>
               </div>
@@ -306,10 +317,44 @@ function TournamentTab() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Avatar({ url, name, className = 'h-7 w-7' }: { url: string | null; name: string; className?: string }) {
+  if (url) return <img src={url} alt="" referrerPolicy="no-referrer" className={`${className} shrink-0 rounded-full object-cover`} />;
+  return (
+    <div className={`${className} grid shrink-0 place-items-center rounded-full bg-white/10 text-xs font-bold text-white/60`}>
+      {([...name.trim()][0] ?? '?').toUpperCase()}
+    </div>
+  );
+}
+
+function LeaderRow({
+  rank,
+  entry,
+  winRate,
+  mine,
+}: {
+  rank: string;
+  entry: LeaderboardEntry;
+  winRate: (e: { wins: number; games: number }) => number;
+  mine: boolean;
+}) {
+  return (
+    <div className={`flex items-center gap-3 rounded-lg px-3 py-2 ${mine ? 'bg-amber-glow/15 ring-1 ring-amber-glow/40' : 'bg-white/5'}`}>
+      <span className="w-7 shrink-0 text-center font-bold text-white/50">{rank}</span>
+      <Avatar url={entry.avatar} name={entry.handle} />
+      <span className="min-w-0 flex-1 truncate font-semibold">{entry.handle}</span>
+      <span className="shrink-0 text-xs tabular-nums text-white/50">{entry.wins}G {entry.losses}M · %{winRate(entry)}</span>
+      <span className="w-12 shrink-0 text-right font-bold text-amber-glow">{entry.rating}</span>
+    </div>
+  );
+}
+
+function Stat({ label, value, prefix }: { label: string; value: number; prefix?: string }) {
   return (
     <div className="rounded-xl bg-white/5 py-3">
-      <div className="text-2xl font-black text-amber-glow">{value}</div>
+      <div className="text-2xl font-black text-amber-glow">
+        {prefix}
+        {value}
+      </div>
       <div className="text-xs text-white/50">{label}</div>
     </div>
   );
