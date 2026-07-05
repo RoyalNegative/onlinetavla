@@ -2,7 +2,6 @@
 // friend-request notification bell.
 
 import { useEffect, useState } from 'react';
-import { fetchFriendRequests } from '../lib/api';
 import { firebaseConfigured, signInWithGoogle, signOut } from '../lib/firebase';
 import { useStore } from '../store';
 import { AccountModal } from './AccountModal';
@@ -11,22 +10,20 @@ export function Auth() {
   const authUser = useStore((s) => s.authUser);
   const accountsEnabled = useStore((s) => s.accountsEnabled);
   const setToast = useStore((s) => s.setToast);
+  const reqCount = useStore((s) => s.reqCount);
+  const refreshRequests = useStore((s) => s.refreshRequests);
   const [modal, setModal] = useState<null | 'leaderboard' | 'profile' | 'friends'>(null);
   const [menu, setMenu] = useState(false);
-  const [reqCount, setReqCount] = useState(0);
 
-  // Notification poll: pending friend requests, refreshed every 45s and when
-  // the modal closes (you may have just accepted them all).
+  // The badge updates live via the friend:request socket push; this 45s poll
+  // is the fallback (missed push, request arrived while offline) and also
+  // refreshes when the modal closes (you may have just accepted them all).
   useEffect(() => {
-    if (!authUser) {
-      setReqCount(0);
-      return;
-    }
-    const load = () => void fetchFriendRequests().then((r) => setReqCount(r.length));
-    load();
-    const t = setInterval(load, 45_000);
+    if (!authUser) return;
+    void refreshRequests();
+    const t = setInterval(() => void refreshRequests(), 45_000);
     return () => clearInterval(t);
-  }, [authUser, modal]);
+  }, [authUser, modal, refreshRequests]);
 
   async function signIn() {
     try {

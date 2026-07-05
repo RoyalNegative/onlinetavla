@@ -198,6 +198,9 @@ function MatchesTab({ authed }: { authed: boolean }) {
 
 function FriendsTab({ authed }: { authed: boolean }) {
   const inviteFriend = useStore((s) => s.inviteFriend);
+  const reqCount = useStore((s) => s.reqCount);
+  const friendsVersion = useStore((s) => s.friendsVersion);
+  const refreshRequests = useStore((s) => s.refreshRequests);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [handle, setHandle] = useState('');
@@ -210,9 +213,11 @@ function FriendsTab({ authed }: { authed: boolean }) {
     void fetchFriends().then(setFriends);
     void fetchFriendRequests().then(setRequests);
   };
+  // reqCount/friendsVersion change on live friend:request / friend:accepted
+  // pushes — reload so an open tab shows new requests and friends instantly.
   useEffect(() => {
     if (authed) reload();
-  }, [authed]);
+  }, [authed, reqCount, friendsVersion]);
 
   if (!authed) return <p className="text-sm text-white/50">Arkadaş eklemek için giriş yap.</p>;
 
@@ -239,6 +244,7 @@ function FriendsTab({ authed }: { authed: boolean }) {
   async function respond(uid: string, accept: boolean) {
     await respondFriendRequest(uid, accept);
     reload();
+    void refreshRequests(); // drop the header bell badge immediately
   }
 
   return (

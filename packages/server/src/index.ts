@@ -7,6 +7,7 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { Server } from 'socket.io';
+import { initNotify } from './accounts/notify';
 import { accountsRouter } from './accounts/routes';
 import { RoomManager } from './rooms';
 import { attachSockets } from './socket';
@@ -49,6 +50,7 @@ const io = new Server(httpServer, {
 
 const rooms = new RoomManager();
 attachSockets(io, rooms);
+initNotify(io);
 
 httpServer.listen(PORT, () => {
   console.log(`[tavla] server listening on http://localhost:${PORT}`);

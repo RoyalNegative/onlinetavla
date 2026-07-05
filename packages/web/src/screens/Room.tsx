@@ -35,6 +35,19 @@ export function Room({ roomId }: { roomId: string }) {
   }, [roomId, connected, hasName, joinRoom]);
 
   const inThisRoom = update?.room.roomId === roomId;
+  const roomStatus = update?.room.status;
+
+  // Watchdog: exiting the connect/waiting screens hinges on a single pushed
+  // room:update, and a lost push (reconnect race, stale seat socketId) has no
+  // other recovery — amiral has no auto-step to re-broadcast, so the creator
+  // stayed stuck until the opponent placed their fleet. Re-join every 3s while
+  // unhealthy; room:join is idempotent and replies with a fresh snapshot.
+  useEffect(() => {
+    if (!connected || !hasName) return;
+    if (inThisRoom && roomStatus !== 'waiting') return; // healthy
+    const t = setInterval(() => void joinRoom(roomId), 3000);
+    return () => clearInterval(t);
+  }, [roomId, connected, hasName, inThisRoom, roomStatus, joinRoom]);
   const yourTurn = !!update?.view.yourTurn;
   const isDama = update?.room.gameId === 'dama';
   const isAmiral = update?.room.gameId === 'amiral';

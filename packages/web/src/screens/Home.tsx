@@ -3,7 +3,7 @@ import type { GameId } from '@tavla/engine';
 import { AccountModal } from '../components/AccountModal';
 import { Die } from '../components/Die';
 import { Header } from '../components/Header';
-import { fetchFriendRequests, fetchFriends, fetchTournament, joinTournament, type Friend, type Tournament } from '../lib/api';
+import { fetchFriends, fetchTournament, joinTournament, type Friend, type Tournament } from '../lib/api';
 import { navigate } from '../router';
 import { useStore } from '../store';
 
@@ -379,20 +379,24 @@ function Toggle({ active, onClick, title, sub }: { active: boolean; onClick: () 
 // Refreshes presence every 30s while visible.
 function FriendsStrip({ game }: { game: GameId }) {
   const inviteFriend = useStore((s) => s.inviteFriend);
+  const reqCount = useStore((s) => s.reqCount);
+  const friendsVersion = useStore((s) => s.friendsVersion);
+  const refreshRequests = useStore((s) => s.refreshRequests);
   const [friends, setFriends] = useState<Friend[]>([]);
-  const [reqCount, setReqCount] = useState(0);
   const [modal, setModal] = useState(false);
   const [inviting, setInviting] = useState<string | null>(null);
 
+  // friendsVersion bumps on a live friend:accepted push, so a fresh friend
+  // appears here without waiting for the 30s presence poll.
   useEffect(() => {
     const load = () => {
       void fetchFriends().then(setFriends);
-      void fetchFriendRequests().then((r) => setReqCount(r.length));
+      void refreshRequests();
     };
     load();
     const t = setInterval(load, 30_000);
     return () => clearInterval(t);
-  }, [modal]);
+  }, [modal, friendsVersion, refreshRequests]);
 
   const online = friends.filter((f) => f.online);
 

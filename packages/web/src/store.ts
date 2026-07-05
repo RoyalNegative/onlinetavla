@@ -4,7 +4,7 @@
 import { create } from 'zustand';
 import type { GameId } from '@tavla/engine';
 import { track } from './lib/analytics';
-import { fetchAccountsEnabled } from './lib/api';
+import { fetchAccountsEnabled, fetchFriendRequests } from './lib/api';
 import { currentIdToken, watchAuth } from './lib/firebase';
 import { emit, socket } from './lib/socket';
 import { setSoundEnabled, sfx, soundEnabled } from './lib/sound';
@@ -28,8 +28,11 @@ interface Store {
   soundOn: boolean;
   matchmaking: boolean;
   invite: { fromName: string; roomId: string; gameId: string } | null;
+  reqCount: number; // pending friend requests — feeds the 🔔 badges
+  friendsVersion: number; // bump to make friends lists refetch
 
   setNickname: (n: string) => void;
+  refreshRequests: () => Promise<void>;
   toggleSound: () => void;
   displayName: () => string;
   init: () => void;
@@ -66,6 +69,14 @@ export const useStore = create<Store>((set, get) => ({
   soundOn: soundEnabled(),
   matchmaking: false,
   invite: null,
+  reqCount: 0,
+  friendsVersion: 0,
+
+  async refreshRequests() {
+    if (!get().authUser) return;
+    const reqs = await fetchFriendRequests();
+    set({ reqCount: reqs.length });
+  },
 
   setNickname(n) {
     const clean = n.slice(0, 20);
@@ -93,11 +104,16 @@ export const useStore = create<Store>((set, get) => ({
       if (idToken) socket.emit('presence:online', { idToken });
     };
 
-    // Note: re-joining on (re)connect is driven by the Room component's effect,
-    // which depends on `connected`. Doing it here too caused double-join races.
+    // Re-join on every (re)connect: socket.io can reconnect without the Room
+    // effect's `connected` flag ever toggling (transport races), leaving the
+    // seat bound to a dead socketId — room:update then emits into the void
+    // until the next server push. room:join is idempotent server-side (token
+    // rejoin + own-socket guard), so a double join here is harmless.
     socket.on('connect', () => {
       set({ connected: true });
       if (get().authUser) void announcePresence();
+      const rid = roomIdFromPath(window.location.pathname);
+      if (rid && (get().authUser || get().nickname.trim())) void get().joinRoom(rid);
     });
     socket.on('disconnect', () => set({ connected: false, matchmaking: false }));
     // The socket starts connecting at module load; on a fast handshake its
@@ -115,13 +131,24 @@ export const useStore = create<Store>((set, get) => ({
       navigator.vibrate?.([80, 60, 80]);
       set({ invite: p });
     });
+    socket.on('friend:request', (p: { uid: string; handle: string; avatar: string | null }) => {
+      sfx.turn();
+      // Optimistic bump so the bell appears instantly; the fetch corrects it.
+      set((s) => ({ reqCount: s.reqCount + 1, toast: `${p.handle} sana arkadaşlık isteği gönderdi 🔔` }));
+      void get().refreshRequests();
+    });
+    socket.on('friend:accepted', (p: { uid: string; handle: string; avatar: string | null }) => {
+      sfx.turn();
+      set((s) => ({ friendsVersion: s.friendsVersion + 1, toast: `${p.handle} arkadaşlık isteğini kabul etti 🎉` }));
+    });
 
     watchAuth((user) => {
       const authUser: AuthUser | null = user
         ? { uid: user.uid, name: user.displayName ?? 'Oyuncu', avatar: user.photoURL ?? null }
         : null;
-      set({ authUser });
+      set({ authUser, ...(authUser ? {} : { reqCount: 0 }) });
       if (authUser && get().connected) void announcePresence();
+      if (authUser) void get().refreshRequests();
       // Re-join with the resolved identity — but never join nameless (it would
       // grab a seat as "Oyuncu" before the name gate is answered).
       const rid = roomIdFromPath(window.location.pathname);

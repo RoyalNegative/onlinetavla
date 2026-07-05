@@ -6,6 +6,7 @@
 import { FieldValue } from 'firebase-admin/firestore';
 import { games } from '@tavla/engine';
 import { accountsEnabled, db } from './firebase';
+import { notifyUser } from './notify';
 
 export interface UserStats {
   uid: string;
@@ -203,6 +204,8 @@ async function requestFriendship(
   const incoming = await db().collection('users').doc(uid).collection('requests').doc(target.uid).get();
   if (incoming.exists) {
     await makeFriends(myInfo, target);
+    // Mutual intent: the target was the original requester — tell them live.
+    notifyUser(target.uid, 'friend:accepted', myInfo);
     return { friend: target };
   }
 
@@ -212,6 +215,7 @@ async function requestFriendship(
     .collection('requests')
     .doc(uid)
     .set({ handle: myInfo.handle, avatar: myInfo.avatar, ts: Date.now() });
+  notifyUser(target.uid, 'friend:request', myInfo);
   return { requested: true };
 }
 
@@ -268,6 +272,7 @@ export async function respondFriendRequest(
   if (!me || !from) return { error: 'not_found' };
   const fromInfo: FriendInfo = { uid: fromUid, handle: from.handle, avatar: from.avatar };
   await makeFriends({ uid, handle: me.handle, avatar: me.avatar }, fromInfo);
+  notifyUser(fromUid, 'friend:accepted', { uid, handle: me.handle, avatar: me.avatar });
   return { friend: fromInfo };
 }
 
