@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import type { GameId } from '@tavla/engine';
 import {
   addFriend as apiAddFriend,
+  fetchFriendRequests,
   fetchFriends,
   fetchLeaderboard,
   fetchMyMatches,
@@ -14,8 +15,10 @@ import {
   fetchTournament,
   joinTournament,
   removeFriend as apiRemoveFriend,
+  respondFriendRequest,
   updateHandle,
   type Friend,
+  type FriendRequest,
   type LeaderboardEntry,
   type MatchRecord,
   type Tournament,
@@ -196,12 +199,17 @@ function MatchesTab({ authed }: { authed: boolean }) {
 function FriendsTab({ authed }: { authed: boolean }) {
   const inviteFriend = useStore((s) => s.inviteFriend);
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [handle, setHandle] = useState('');
   const [filter, setFilter] = useState('');
   const [err, setErr] = useState('');
+  const [sent, setSent] = useState(false);
   const [game, setGame] = useState<GameId>('tavla');
 
-  const reload = () => void fetchFriends().then(setFriends);
+  const reload = () => {
+    void fetchFriends().then(setFriends);
+    void fetchFriendRequests().then(setRequests);
+  };
   useEffect(() => {
     if (authed) reload();
   }, [authed]);
@@ -218,16 +226,44 @@ function FriendsTab({ authed }: { authed: boolean }) {
 
   async function add() {
     setErr('');
+    setSent(false);
     const res = await apiAddFriend(handle.trim());
     if (res.error) setErr(res.error === 'not_found' ? 'Bu adda oyuncu yok.' : res.error === 'self' ? 'Kendini ekleyemezsin.' : 'Eklenemedi.');
     else {
       setHandle('');
+      if (res.requested) setSent(true);
       reload();
     }
   }
 
+  async function respond(uid: string, accept: boolean) {
+    await respondFriendRequest(uid, accept);
+    reload();
+  }
+
   return (
     <div className="space-y-3">
+      {requests.length > 0 && (
+        <div className="space-y-1 rounded-xl border border-amber-glow/30 bg-amber-glow/[0.07] p-3">
+          <p className="mb-1 text-xs font-semibold text-amber-glow">🔔 Arkadaşlık istekleri ({requests.length})</p>
+          {requests.map((r) => (
+            <div key={r.uid} className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
+              <Avatar url={r.avatar} name={r.handle} className="h-7 w-7" />
+              <span className="min-w-0 flex-1 truncate text-sm font-semibold">{r.handle}</span>
+              <button
+                className="shrink-0 rounded bg-emerald-500 px-2.5 py-1 text-xs font-bold text-ink-900 hover:brightness-110"
+                onClick={() => respond(r.uid, true)}
+              >
+                ✓ Kabul
+              </button>
+              <button className="shrink-0 rounded bg-white/10 px-2.5 py-1 text-xs text-white/60 hover:text-rose-300" onClick={() => respond(r.uid, false)}>
+                Reddet
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="flex gap-2">
         <input className="input py-2" placeholder="oyuncu adı (handle)" value={handle} maxLength={24} onChange={(e) => setHandle(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} />
         <button className="btn-primary px-3" onClick={add}>
@@ -235,6 +271,7 @@ function FriendsTab({ authed }: { authed: boolean }) {
         </button>
       </div>
       {err && <p className="text-xs text-rose-400">{err}</p>}
+      {sent && <p className="text-xs text-emerald-400">✓ İstek gönderildi — kabul edince arkadaş listende görünecek.</p>}
 
       <div className="flex items-center gap-2 text-xs text-white/50">
         Davet oyunu:

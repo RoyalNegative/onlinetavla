@@ -14,8 +14,10 @@ import {
   getProfile,
   getRank,
   joinTournament,
+  listFriendRequests,
   listFriends,
   removeFriend,
+  respondFriendRequest,
   tournamentStandings,
   updateProfile,
 } from './store';
@@ -68,7 +70,9 @@ export function accountsRouter(): Router {
     return res.json({ friends: friends.map((f) => ({ ...f, online: isOnline(f.uid) })) });
   });
 
-  // Add by handle (typed in the modal) or by uid (one tap on an opponent in-room).
+  // Request by handle (typed in the modal) or by uid (one tap on an opponent
+  // in-room). Adds are consensual: the target gets a request to accept — unless
+  // they already requested you, which counts as mutual consent.
   router.post('/friends', async (req: Request, res: Response) => {
     const uid = await uidFrom(req);
     if (!uid) return res.status(401).json({ error: 'unauthorized' });
@@ -77,7 +81,25 @@ export function accountsRouter(): Router {
     if (!handle.trim() && !targetUid) return res.status(400).json({ error: 'handle_required' });
     const result = handle.trim() ? await addFriend(uid, handle) : await addFriendByUid(uid, targetUid);
     if ('error' in result) return res.status(404).json({ error: result.error });
-    return res.json({ friend: { ...result, online: isOnline(result.uid) } });
+    if ('requested' in result) return res.json({ requested: true });
+    return res.json({ friend: { ...result.friend, online: isOnline(result.friend.uid) } });
+  });
+
+  // ---- Friend requests (the notification inbox) ----
+  router.get('/friends/requests', async (req: Request, res: Response) => {
+    const uid = await uidFrom(req);
+    if (!uid) return res.status(401).json({ error: 'unauthorized' });
+    return res.json({ requests: await listFriendRequests(uid) });
+  });
+
+  router.post('/friends/requests/:uid', async (req: Request, res: Response) => {
+    const uid = await uidFrom(req);
+    if (!uid) return res.status(401).json({ error: 'unauthorized' });
+    const accept = req.body?.accept === true;
+    const result = await respondFriendRequest(uid, String(req.params.uid), accept);
+    if ('error' in result) return res.status(404).json({ error: result.error });
+    if ('friend' in result) return res.json({ friend: { ...result.friend, online: isOnline(result.friend.uid) } });
+    return res.json({ ok: true });
   });
 
   router.delete('/friends/:uid', async (req: Request, res: Response) => {

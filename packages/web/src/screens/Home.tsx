@@ -3,17 +3,19 @@ import type { GameId } from '@tavla/engine';
 import { AccountModal } from '../components/AccountModal';
 import { Die } from '../components/Die';
 import { Header } from '../components/Header';
-import { fetchFriends, fetchTournament, joinTournament, type Friend, type Tournament } from '../lib/api';
+import { fetchFriendRequests, fetchFriends, fetchTournament, joinTournament, type Friend, type Tournament } from '../lib/api';
 import { navigate } from '../router';
 import { useStore } from '../store';
 
 const TARGETS = [1, 3, 5, 7];
 
 // The hub's game catalog — adding a game here (plus its GameModule) is all the
-// home screen needs.
-const GAMES: { id: GameId; icon: string; title: string; sub: string; hero: string; desc: string; how: string }[] = [
+// home screen needs. `kind` splits the picker: head-to-head duels vs party
+// games you gather a crew for.
+const GAMES: { id: GameId; kind: 'duel' | 'party'; icon: string; title: string; sub: string; hero: string; desc: string; how: string }[] = [
   {
     id: 'tavla',
+    kind: 'duel',
     icon: '🎲',
     title: 'Tavla',
     sub: 'backgammon',
@@ -23,6 +25,7 @@ const GAMES: { id: GameId; icon: string; title: string; sub: string; hero: strin
   },
   {
     id: 'dama',
+    kind: 'duel',
     icon: '⛀',
     title: 'Dama',
     sub: 'Türk daması',
@@ -32,6 +35,7 @@ const GAMES: { id: GameId; icon: string; title: string; sub: string; hero: strin
   },
   {
     id: 'amiral',
+    kind: 'duel',
     icon: '🚢',
     title: 'Amiral Battı',
     sub: 'deniz savaşı',
@@ -41,6 +45,7 @@ const GAMES: { id: GameId; icon: string; title: string; sub: string; hero: strin
   },
   {
     id: 'mangala',
+    kind: 'duel',
     icon: '🪨',
     title: 'Mangala',
     sub: 'Türk zekâ oyunu',
@@ -50,6 +55,7 @@ const GAMES: { id: GameId; icon: string; title: string; sub: string; hero: strin
   },
   {
     id: 'dortlu',
+    kind: 'duel',
     icon: '🔴',
     title: "4'ü Bağla",
     sub: 'dörtlü sıra',
@@ -59,6 +65,7 @@ const GAMES: { id: GameId; icon: string; title: string; sub: string; hero: strin
   },
   {
     id: 'secrethitler',
+    kind: 'party',
     icon: '🕵️',
     title: 'Secret Hitler',
     sub: '5-10 kişi · ekipçe',
@@ -143,25 +150,23 @@ export function Home() {
               <span className="text-sm font-semibold text-white/70">Oyununu seç</span>
               <span className="text-[11px] text-white/35">1/2</span>
             </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {GAMES.map((g) => (
-                <button
-                  key={g.id}
-                  onClick={() => {
-                    setGame(g.id);
-                    setPicked(true);
-                  }}
-                  className="group flex items-start gap-3 rounded-xl bg-white/5 px-3.5 py-3 text-left transition hover:bg-amber-glow hover:text-ink-900"
-                >
-                  <div className="mt-0.5 text-3xl leading-none">{g.icon}</div>
-                  <div className="min-w-0">
-                    <div className="font-bold leading-tight">
-                      {g.title} <span className="text-[11px] font-normal text-white/40 group-hover:text-ink-900/60">· {g.sub}</span>
-                    </div>
-                    <div className="mt-1 text-xs leading-snug text-white/45 group-hover:text-ink-900/75">{g.desc}</div>
-                  </div>
-                </button>
-              ))}
+
+            <div>
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-white/35">⚔️ İki kişilik</p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {GAMES.filter((g) => g.kind === 'duel').map((g) => (
+                  <GamePick key={g.id} g={g} onPick={() => { setGame(g.id); setPicked(true); }} />
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-white/35">🎉 Toplu oyun — ekibini topla</p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {GAMES.filter((g) => g.kind === 'party').map((g) => (
+                  <GamePick key={g.id} g={g} onPick={() => { setGame(g.id); setPicked(true); }} />
+                ))}
+              </div>
             </div>
           </div>
         ) : (
@@ -341,6 +346,23 @@ function BoardStrip() {
   );
 }
 
+function GamePick({ g, onPick }: { g: (typeof GAMES)[number]; onPick: () => void }) {
+  return (
+    <button
+      onClick={onPick}
+      className="group flex items-start gap-3 rounded-xl bg-white/5 px-3.5 py-3 text-left transition hover:bg-amber-glow hover:text-ink-900"
+    >
+      <div className="mt-0.5 text-3xl leading-none">{g.icon}</div>
+      <div className="min-w-0">
+        <div className="font-bold leading-tight">
+          {g.title} <span className="text-[11px] font-normal text-white/40 group-hover:text-ink-900/60">· {g.sub}</span>
+        </div>
+        <div className="mt-1 text-xs leading-snug text-white/45 group-hover:text-ink-900/75">{g.desc}</div>
+      </div>
+    </button>
+  );
+}
+
 function Toggle({ active, onClick, title, sub }: { active: boolean; onClick: () => void; title: string; sub: string }) {
   return (
     <button
@@ -358,15 +380,19 @@ function Toggle({ active, onClick, title, sub }: { active: boolean; onClick: () 
 function FriendsStrip({ game }: { game: GameId }) {
   const inviteFriend = useStore((s) => s.inviteFriend);
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [reqCount, setReqCount] = useState(0);
   const [modal, setModal] = useState(false);
   const [inviting, setInviting] = useState<string | null>(null);
 
   useEffect(() => {
-    const load = () => void fetchFriends().then(setFriends);
+    const load = () => {
+      void fetchFriends().then(setFriends);
+      void fetchFriendRequests().then((r) => setReqCount(r.length));
+    };
     load();
     const t = setInterval(load, 30_000);
     return () => clearInterval(t);
-  }, []);
+  }, [modal]);
 
   const online = friends.filter((f) => f.online);
 
@@ -375,7 +401,13 @@ function FriendsStrip({ game }: { game: GameId }) {
       <div className="mb-2 flex items-center justify-between">
         <p className="text-sm font-semibold">👥 Arkadaşların {online.length > 0 && <span className="text-emerald-400">· {online.length} çevrimiçi</span>}</p>
         <button className="text-xs text-amber-glow hover:underline" onClick={() => setModal(true)}>
-          {friends.length === 0 ? '+ Arkadaş ekle' : 'Tümü / ekle'}
+          {reqCount > 0 ? (
+            <span className="rounded-full bg-rose-500/20 px-2 py-0.5 font-bold text-rose-300">🔔 {reqCount} istek</span>
+          ) : friends.length === 0 ? (
+            '+ Arkadaş ekle'
+          ) : (
+            'Tümü / ekle'
+          )}
         </button>
       </div>
       {friends.length === 0 ? (

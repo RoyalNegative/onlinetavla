@@ -1,6 +1,8 @@
-// Header auth control: Google sign-in (optional) + leaderboard access.
+// Header auth control: Google sign-in (optional), leaderboard access and the
+// friend-request notification bell.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { fetchFriendRequests } from '../lib/api';
 import { firebaseConfigured, signInWithGoogle, signOut } from '../lib/firebase';
 import { useStore } from '../store';
 import { AccountModal } from './AccountModal';
@@ -9,8 +11,22 @@ export function Auth() {
   const authUser = useStore((s) => s.authUser);
   const accountsEnabled = useStore((s) => s.accountsEnabled);
   const setToast = useStore((s) => s.setToast);
-  const [modal, setModal] = useState<null | 'leaderboard' | 'profile'>(null);
+  const [modal, setModal] = useState<null | 'leaderboard' | 'profile' | 'friends'>(null);
   const [menu, setMenu] = useState(false);
+  const [reqCount, setReqCount] = useState(0);
+
+  // Notification poll: pending friend requests, refreshed every 45s and when
+  // the modal closes (you may have just accepted them all).
+  useEffect(() => {
+    if (!authUser) {
+      setReqCount(0);
+      return;
+    }
+    const load = () => void fetchFriendRequests().then((r) => setReqCount(r.length));
+    load();
+    const t = setInterval(load, 45_000);
+    return () => clearInterval(t);
+  }, [authUser, modal]);
 
   async function signIn() {
     try {
@@ -30,6 +46,18 @@ export function Auth() {
 
   return (
     <div className="flex items-center gap-2">
+      {authUser && reqCount > 0 && (
+        <button
+          className="relative rounded-xl bg-white/5 px-2.5 py-2 text-sm hover:bg-white/10"
+          title={`${reqCount} arkadaşlık isteği`}
+          onClick={() => setModal('friends')}
+        >
+          🔔
+          <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+            {reqCount}
+          </span>
+        </button>
+      )}
       <button className="btn-ghost px-2.5 py-2 text-sm" onClick={() => setModal('leaderboard')}>
         🏆<span className="ml-1 hidden sm:inline">Sıralama</span>
       </button>
@@ -80,7 +108,12 @@ export function Auth() {
           </button>
         ))}
 
-      {modal && <AccountModal initialTab={modal === 'profile' ? 'profile' : 'leaderboard'} onClose={() => setModal(null)} />}
+      {modal && (
+        <AccountModal
+          initialTab={modal === 'profile' ? 'profile' : modal === 'friends' ? 'friends' : 'leaderboard'}
+          onClose={() => setModal(null)}
+        />
+      )}
     </div>
   );
 }

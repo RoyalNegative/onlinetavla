@@ -86,25 +86,47 @@ export async function fetchFriends(): Promise<Friend[]> {
   return ((await res.json()).friends ?? []) as Friend[];
 }
 
-export async function addFriend(handle: string): Promise<{ friend?: Friend; error?: string }> {
+/** Adds are consensual: usually returns {requested}; {friend} when it was mutual. */
+export async function addFriend(handle: string): Promise<{ friend?: Friend; requested?: boolean; error?: string }> {
   const res = await fetch('/api/friends', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
     body: JSON.stringify({ handle }),
   });
   const data = await res.json();
-  return res.ok ? { friend: data.friend } : { error: data.error ?? 'error' };
+  return res.ok ? { friend: data.friend, requested: data.requested } : { error: data.error ?? 'error' };
 }
 
-/** One-tap add from a room: we know the opponent's uid, no handle typing. */
-export async function addFriendByUid(uid: string): Promise<{ friend?: Friend; error?: string }> {
+/** One-tap request from a room: we know the opponent's uid, no handle typing. */
+export async function addFriendByUid(uid: string): Promise<{ friend?: Friend; requested?: boolean; error?: string }> {
   const res = await fetch('/api/friends', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
     body: JSON.stringify({ uid }),
   });
   const data = await res.json();
-  return res.ok ? { friend: data.friend } : { error: data.error ?? 'error' };
+  return res.ok ? { friend: data.friend, requested: data.requested } : { error: data.error ?? 'error' };
+}
+
+export interface FriendRequest {
+  uid: string;
+  handle: string;
+  avatar: string | null;
+  ts: number;
+}
+
+export async function fetchFriendRequests(): Promise<FriendRequest[]> {
+  const res = await fetch('/api/friends/requests', { headers: await authHeaders() });
+  if (!res.ok) return [];
+  return ((await res.json()).requests ?? []) as FriendRequest[];
+}
+
+export async function respondFriendRequest(uid: string, accept: boolean): Promise<void> {
+  await fetch(`/api/friends/requests/${uid}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+    body: JSON.stringify({ accept }),
+  });
 }
 
 export async function removeFriend(uid: string): Promise<void> {

@@ -161,38 +161,123 @@ export async function findUserByHandle(handle: string): Promise<FriendInfo | nul
   return { uid: d.id, handle: data.handle, avatar: data.avatar };
 }
 
-export async function addFriend(uid: string, handle: string): Promise<FriendInfo | { error: string }> {
+export interface FriendRequest extends FriendInfo {
+  ts: number;
+}
+
+/** Write the friendship on BOTH sides and clear any pending requests between the pair. */
+async function makeFriends(a: FriendInfo, b: FriendInfo): Promise<void> {
+  const now = Date.now();
+  const batch = db().batch();
+  batch.set(db().collection('users').doc(a.uid).collection('friends').doc(b.uid), {
+    handle: b.handle,
+    avatar: b.avatar,
+    addedAt: now,
+  });
+  batch.set(db().collection('users').doc(b.uid).collection('friends').doc(a.uid), {
+    handle: a.handle,
+    avatar: a.avatar,
+    addedAt: now,
+  });
+  batch.delete(db().collection('users').doc(a.uid).collection('requests').doc(b.uid));
+  batch.delete(db().collection('users').doc(b.uid).collection('requests').doc(a.uid));
+  await batch.commit();
+}
+
+/**
+ * Friend adds are consensual: this drops a request in the target's inbox.
+ * If the target had already requested *me*, that's mutual intent — the pair
+ * becomes friends immediately instead.
+ */
+async function requestFriendship(
+  uid: string,
+  target: FriendInfo,
+): Promise<{ requested: true } | { friend: FriendInfo } | { error: string }> {
+  if (target.uid === uid) return { error: 'self' };
+  const me = await getProfile(uid);
+  if (!me) return { error: 'not_found' };
+  const myInfo: FriendInfo = { uid, handle: me.handle, avatar: me.avatar };
+
+  if (await isFriend(uid, target.uid)) return { friend: target }; // already friends — idempotent
+
+  const incoming = await db().collection('users').doc(uid).collection('requests').doc(target.uid).get();
+  if (incoming.exists) {
+    await makeFriends(myInfo, target);
+    return { friend: target };
+  }
+
+  await db()
+    .collection('users')
+    .doc(target.uid)
+    .collection('requests')
+    .doc(uid)
+    .set({ handle: myInfo.handle, avatar: myInfo.avatar, ts: Date.now() });
+  return { requested: true };
+}
+
+export async function addFriend(
+  uid: string,
+  handle: string,
+): Promise<{ requested: true } | { friend: FriendInfo } | { error: string }> {
   if (!accountsEnabled()) return { error: 'disabled' };
   const target = await findUserByHandle(handle.trim());
   if (!target) return { error: 'not_found' };
-  if (target.uid === uid) return { error: 'self' };
-  await db()
-    .collection('users')
-    .doc(uid)
-    .collection('friends')
-    .doc(target.uid)
-    .set({ handle: target.handle, avatar: target.avatar, addedAt: Date.now() }, { merge: true });
-  return target;
+  return requestFriendship(uid, target);
 }
 
-/** Add a friend you already share a room with — by uid, no handle typing. */
-export async function addFriendByUid(uid: string, targetUid: string): Promise<FriendInfo | { error: string }> {
+/** Request a player you already share a room with — by uid, no handle typing. */
+export async function addFriendByUid(
+  uid: string,
+  targetUid: string,
+): Promise<{ requested: true } | { friend: FriendInfo } | { error: string }> {
   if (!accountsEnabled()) return { error: 'disabled' };
   if (!targetUid || targetUid === uid) return { error: 'self' };
   const profile = await getProfile(targetUid);
   if (!profile) return { error: 'not_found' };
-  await db()
-    .collection('users')
-    .doc(uid)
-    .collection('friends')
-    .doc(targetUid)
-    .set({ handle: profile.handle, avatar: profile.avatar, addedAt: Date.now() }, { merge: true });
-  return { uid: targetUid, handle: profile.handle, avatar: profile.avatar };
+  return requestFriendship(uid, { uid: targetUid, handle: profile.handle, avatar: profile.avatar });
+}
+
+export async function listFriendRequests(uid: string): Promise<FriendRequest[]> {
+  if (!accountsEnabled()) return [];
+  const snap = await db().collection('users').doc(uid).collection('requests').get();
+  return snap.docs
+    .map((d) => ({
+      uid: d.id,
+      handle: (d.data().handle as string) ?? 'Oyuncu',
+      avatar: (d.data().avatar as string) ?? null,
+      ts: (d.data().ts as number) ?? 0,
+    }))
+    .sort((a, b) => b.ts - a.ts);
+}
+
+export async function respondFriendRequest(
+  uid: string,
+  fromUid: string,
+  accept: boolean,
+): Promise<{ friend: FriendInfo } | { ok: true } | { error: string }> {
+  if (!accountsEnabled()) return { error: 'disabled' };
+  const reqRef = db().collection('users').doc(uid).collection('requests').doc(fromUid);
+  const req = await reqRef.get();
+  if (!req.exists) return { error: 'not_found' };
+  if (!accept) {
+    await reqRef.delete();
+    return { ok: true };
+  }
+  const me = await getProfile(uid);
+  const from = await getProfile(fromUid);
+  if (!me || !from) return { error: 'not_found' };
+  const fromInfo: FriendInfo = { uid: fromUid, handle: from.handle, avatar: from.avatar };
+  await makeFriends({ uid, handle: me.handle, avatar: me.avatar }, fromInfo);
+  return { friend: fromInfo };
 }
 
 export async function removeFriend(uid: string, friendUid: string): Promise<void> {
   if (!accountsEnabled()) return;
-  await db().collection('users').doc(uid).collection('friends').doc(friendUid).delete();
+  // Friendship is mutual, so unfriending clears both directions.
+  const batch = db().batch();
+  batch.delete(db().collection('users').doc(uid).collection('friends').doc(friendUid));
+  batch.delete(db().collection('users').doc(friendUid).collection('friends').doc(uid));
+  await batch.commit();
 }
 
 export async function isFriend(uid: string, friendUid: string): Promise<boolean> {
