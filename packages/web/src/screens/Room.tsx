@@ -6,6 +6,7 @@ import { BattleshipBoard, useBattleshipFx } from '../components/BattleshipBoard'
 import { BattleshipPanel } from '../components/BattleshipPanel';
 import { Board } from '../components/Board';
 import { Chat } from '../components/Chat';
+import { ChatBubbles } from '../components/ChatBubbles';
 import { Controls } from '../components/Controls';
 import { DamaBoard } from '../components/DamaBoard';
 import { DamaPanel } from '../components/DamaPanel';
@@ -138,6 +139,7 @@ export function Room({ roomId }: { roomId: string }) {
             )}
             {/* SH's lobby is its own UI with the invite link built in. */}
             {update.room.status === 'waiting' && !isSH && <WaitingOverlay roomId={roomId} />}
+            <ChatBubbles messages={update.room.chat} selfName={update.you.name} />
           </div>
 
           <aside className="flex min-h-0 flex-col gap-4">
