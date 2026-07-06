@@ -1,11 +1,29 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { GameId } from '@tavla/engine';
 import { AccountModal } from '../components/AccountModal';
 import { Die } from '../components/Die';
 import { Header } from '../components/Header';
 import { fetchFriends, fetchTournament, joinTournament, type Friend, type Tournament } from '../lib/api';
+import { GAME_META } from '../lib/games';
 import { navigate } from '../router';
 import { useStore } from '../store';
+
+// Last game + settings, so returning players get a one-tap "hemen oyna" row.
+interface QuickStart {
+  gameId: GameId;
+  mode: 'classic' | 'backgammon';
+  targetPoints: number;
+  noTouch?: boolean;
+}
+const QUICK_KEY = 'tavla.quickstart';
+function loadQuick(): QuickStart | null {
+  try {
+    const raw = localStorage.getItem(QUICK_KEY);
+    return raw ? (JSON.parse(raw) as QuickStart) : null;
+  } catch {
+    return null;
+  }
+}
 
 const TARGETS = [1, 3, 5, 7];
 
@@ -94,16 +112,55 @@ export function Home() {
   const [target, setTarget] = useState(5);
   const [joinCode, setJoinCode] = useState('');
   const [busy, setBusy] = useState(false);
+  const [quick] = useState<QuickStart | null>(loadQuick);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const [nameFlash, setNameFlash] = useState(false);
+
+  // Instead of a mysteriously-disabled button: jump to the name field and
+  // flash it, so the "why can't I click" is answered by the UI itself.
+  function requireName(): boolean {
+    if (hasName) return true;
+    setNameFlash(true);
+    nameRef.current?.focus();
+    nameRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    setTimeout(() => setNameFlash(false), 1200);
+    return false;
+  }
+
+  function saveQuick(opts: QuickStart) {
+    localStorage.setItem(QUICK_KEY, JSON.stringify(opts));
+  }
 
   async function create() {
+    if (!requireName()) return;
     setBusy(true);
-    await createRoom({
+    const opts: QuickStart = {
+      gameId: game,
+      mode,
+      targetPoints: target,
+      noTouch: game === 'amiral' ? amiralKolay : undefined,
+    };
+    saveQuick(opts);
+    await createRoom(opts);
+    setBusy(false);
+  }
+
+  async function quickCreate() {
+    if (!quick) return;
+    setBusy(true);
+    await createRoom(quick);
+    setBusy(false);
+  }
+
+  function find() {
+    if (!requireName()) return;
+    saveQuick({
       gameId: game,
       mode,
       targetPoints: target,
       noTouch: game === 'amiral' ? amiralKolay : undefined,
     });
-    setBusy(false);
+    void findMatch(game);
   }
 
   function join() {
@@ -116,17 +173,17 @@ export function Home() {
       <Header />
 
       <main className="flex-1 px-4 pb-12 sm:px-6">
-        {/* ---- Hero: the game's own dice, then the claim ---- */}
-        <section className="pb-6 pt-6 text-center sm:pt-10">
-          <div className="mb-4 flex items-end justify-center gap-2" aria-hidden>
-            <div className="-rotate-12"><Die value={5} size={40} /></div>
-            <div className="translate-y-0.5 rotate-6"><Die value={3} size={32} /></div>
+        {/* ---- Hero: compact, so the actual product (the picker) is above the fold ---- */}
+        <section className="pb-4 pt-4 text-center sm:pt-6">
+          <div className="mb-2 flex items-end justify-center gap-2" aria-hidden>
+            <div className="-rotate-12"><Die value={5} size={30} /></div>
+            <div className="translate-y-0.5 rotate-6"><Die value={3} size={24} /></div>
           </div>
-          <h1 className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl">
+          <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
             Arkadaşınla <span className="text-amber-glow">{picked ? meta.hero : 'oyna'}</span>
           </h1>
-          <p className="mx-auto mt-3 max-w-md text-white/60">
-            Oyununu seç, oda kur, linki paylaş — saniyeler içinde oyna. Ücretsiz, reklamsız, üyelik gerekmez.
+          <p className="mx-auto mt-1.5 max-w-md text-sm text-white/60">
+            Oda kur, linki paylaş, saniyeler içinde oyna — ücretsiz, üyeliksiz.
           </p>
         </section>
 
@@ -140,12 +197,42 @@ export function Home() {
           )}
 
           <div className="lg:col-start-1 lg:row-start-1 lg:row-span-3">
-            {/* ---- Signature: a sliver of the board itself ---- */}
-            <BoardStrip />
+        {/* ---- Returning player: one tap back into your usual game ---- */}
+        {!picked && quick && hasName && GAME_META[quick.gameId] && (
+          <div className="card mb-3 flex flex-col gap-3 border-amber-glow/25 p-4 sm:flex-row sm:items-center">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <span
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-2xl"
+                style={{ background: `${GAME_META[quick.gameId].tint}26` }}
+              >
+                {GAME_META[quick.gameId].icon}
+              </span>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-amber-glow/80">Kaldığın yerden</p>
+                <p className="truncate text-sm font-semibold">
+                  {GAME_META[quick.gameId].title}
+                  {quick.gameId === 'tavla' && (
+                    <span className="font-normal text-white/45"> · {quick.mode === 'backgammon' ? 'çift zarlı' : 'klasik'} · {quick.targetPoints} sayıya</span>
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <button className="btn-primary flex-1 px-4 py-2.5 text-sm sm:flex-none" onClick={quickCreate} disabled={busy}>
+                {busy ? 'Oluşturuluyor…' : '▸ Hemen oda kur'}
+              </button>
+              {quick.gameId !== 'secrethitler' && (
+                <button className="btn-ghost px-4 py-2.5 text-sm" onClick={() => findMatch(quick.gameId)} disabled={matchmaking}>
+                  🎯 Rakip bul
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ---- The one card that starts a game: pick → set up ---- */}
         {!picked ? (
-          <div className="card mt-6 space-y-4 p-5 sm:p-6">
+          <div key="pick" className="card animate-fade-up space-y-4 p-5 sm:p-6">
             <div className="flex items-baseline justify-between">
               <span className="text-sm font-semibold text-white/70">Oyununu seç</span>
               <span className="text-[11px] text-white/35">1/2</span>
@@ -170,10 +257,15 @@ export function Home() {
             </div>
           </div>
         ) : (
-          <div className="card mt-6 space-y-5 p-5 sm:p-6">
+          <div key="setup" className="card animate-fade-up space-y-5 p-5 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <span className="text-3xl leading-none">{meta.icon}</span>
+                <span
+                  className="grid h-11 w-11 place-items-center rounded-xl text-2xl leading-none"
+                  style={{ background: `${GAME_META[meta.id].tint}26` }}
+                >
+                  {meta.icon}
+                </span>
                 <div>
                   <div className="font-bold leading-tight">{meta.title}</div>
                   <div className="text-[11px] text-white/40">{meta.sub}</div>
@@ -229,7 +321,8 @@ export function Home() {
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-white/70">Takma adın</label>
               <input
-                className="input"
+                ref={nameRef}
+                className={`input transition-shadow ${nameFlash ? 'ring-2 ring-rose-400/80' : ''}`}
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
                 placeholder="ör. Kaan"
@@ -246,15 +339,15 @@ export function Home() {
               </div>
             ) : game === 'secrethitler' ? (
               // Lobby game: no 1v1 matchmaking — you gather your own crew.
-              <button className="btn-primary w-full py-3" onClick={create} disabled={busy || !hasName}>
+              <button className="btn-primary w-full py-3" onClick={create} disabled={busy}>
                 {busy ? 'Oluşturuluyor…' : '▸ Lobi kur, ekibi topla (5-10 kişi)'}
               </button>
             ) : (
               <div className="grid gap-2 sm:grid-cols-2">
-                <button className="btn-primary py-3" onClick={create} disabled={busy || !hasName}>
+                <button className="btn-primary py-3" onClick={create} disabled={busy}>
                   {busy ? 'Oluşturuluyor…' : '▸ Oda kur ve başla'}
                 </button>
-                <button className="btn-ghost py-3" onClick={() => findMatch(game)} disabled={!hasName}>
+                <button className="btn-ghost py-3" onClick={find}>
                   🎯 Rakip bul
                 </button>
               </div>
@@ -318,46 +411,25 @@ export function Home() {
   );
 }
 
-// A sliver of the real board — felt, wood and cream points, straight from the
-// game's palette. The one decorative element on the page.
-function BoardStrip() {
-  const W = 720;
-  const H = 36;
-  const n = 18;
-  const cw = W / n;
-  return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      className="h-6 w-full rounded-lg opacity-80 ring-1 ring-white/10 sm:h-7"
-      preserveAspectRatio="none"
-      aria-hidden
-    >
-      <rect width={W} height={H} fill="#155b44" />
-      {Array.from({ length: n }, (_, i) => {
-        const x = i * cw;
-        const down = i % 2 === 0;
-        const fill = down ? '#e9dcc0' : '#9c5a32';
-        const points = down
-          ? `${x + 4},0 ${x + cw - 4},0 ${x + cw / 2},${H - 5}`
-          : `${x + 4},${H} ${x + cw - 4},${H} ${x + cw / 2},5`;
-        return <polygon key={i} points={points} fill={fill} opacity="0.85" />;
-      })}
-    </svg>
-  );
-}
-
 function GamePick({ g, onPick }: { g: (typeof GAMES)[number]; onPick: () => void }) {
+  const tint = GAME_META[g.id].tint;
   return (
     <button
       onClick={onPick}
-      className="group flex items-start gap-3 rounded-xl bg-white/5 px-3.5 py-3 text-left transition hover:bg-amber-glow hover:text-ink-900"
+      style={{ ['--tint' as string]: tint }}
+      className="group flex items-center gap-3 rounded-xl bg-white/5 px-3.5 py-3 text-left ring-1 ring-transparent transition duration-150 hover:-translate-y-0.5 hover:bg-white/[0.08] hover:ring-[color:var(--tint)] active:translate-y-0"
     >
-      <div className="mt-0.5 text-3xl leading-none">{g.icon}</div>
+      <div
+        className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-2xl leading-none transition duration-150 group-hover:scale-110"
+        style={{ background: `${tint}26` }}
+      >
+        {g.icon}
+      </div>
       <div className="min-w-0">
         <div className="font-bold leading-tight">
-          {g.title} <span className="text-[11px] font-normal text-white/40 group-hover:text-ink-900/60">· {g.sub}</span>
+          {g.title} <span className="text-[11px] font-normal text-white/40">· {g.sub}</span>
         </div>
-        <div className="mt-1 text-xs leading-snug text-white/45 group-hover:text-ink-900/75">{g.desc}</div>
+        <div className="mt-1 text-xs leading-snug text-white/45">{g.desc}</div>
       </div>
     </button>
   );

@@ -7,6 +7,7 @@ import { BattleshipPanel } from '../components/BattleshipPanel';
 import { Board } from '../components/Board';
 import { Chat } from '../components/Chat';
 import { ChatBubbles } from '../components/ChatBubbles';
+import { GAME_META } from '../lib/games';
 import { Controls } from '../components/Controls';
 import { DamaBoard } from '../components/DamaBoard';
 import { DamaPanel } from '../components/DamaPanel';
@@ -73,9 +74,12 @@ export function Room({ roomId }: { roomId: string }) {
   );
   useGameEffects(effectsUpdate);
 
+  const gameMeta = update ? GAME_META[update.room.gameId] : undefined;
+
   return (
     <div className="mx-auto flex min-h-full max-w-6xl flex-col">
       <Header
+        title={gameMeta?.title}
         right={
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1.5 text-xs text-white/50">
@@ -112,6 +116,15 @@ export function Room({ roomId }: { roomId: string }) {
                         : 'calc((100dvh - 150px) * 5 / 3)',
             }}
           >
+            {/* Ambient glow in the game's accent color — the board sits in a
+                pool of light instead of floating on flat black. */}
+            {gameMeta && (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -inset-10 -z-10 blur-3xl"
+                style={{ background: `radial-gradient(closest-side, ${gameMeta.tint}2b, transparent)` }}
+              />
+            )}
             {isSH ? (
               <SecretHitlerBoard
                 view={shview}

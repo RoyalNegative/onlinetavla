@@ -3,7 +3,7 @@ import { navigate } from '../router';
 import { useStore } from '../store';
 import { Auth } from './Auth';
 
-export function Header({ right }: { right?: ReactNode }) {
+export function Header({ right, title }: { right?: ReactNode; title?: string }) {
   const soundOn = useStore((s) => s.soundOn);
   const toggleSound = useStore((s) => s.toggleSound);
   return (
@@ -13,6 +13,9 @@ export function Header({ right }: { right?: ReactNode }) {
         <span>
           Tavla<span className="text-amber-glow">.</span>
         </span>
+        {title && title !== 'Tavla' && (
+          <span className="ml-1 hidden text-sm font-semibold text-white/45 sm:inline">· {title}</span>
+        )}
       </button>
       <div className="flex items-center gap-1.5 sm:gap-2">
         {right}
