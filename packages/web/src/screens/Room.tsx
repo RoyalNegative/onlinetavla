@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { BattleshipView, DamaView, DortluView, MangalaView, SHView, TavlaView } from '@tavla/engine';
 import { treasuryOf } from '@tavla/engine';
 import { AddFriendChip } from '../components/AddFriendChip';
@@ -15,6 +15,7 @@ import { DortluBoard } from '../components/DortluBoard';
 import { GenericPanel } from '../components/GenericPanel';
 import { Header } from '../components/Header';
 import { MangalaBoard } from '../components/MangalaBoard';
+import { PeerCursors } from '../components/PeerCursors';
 import { PlayerPanel } from '../components/PlayerPanel';
 import { SecretHitlerBoard, SecretRolePanel } from '../components/SecretHitlerBoard';
 import { navigate } from '../router';
@@ -75,19 +76,25 @@ export function Room({ roomId }: { roomId: string }) {
   useGameEffects(effectsUpdate);
 
   const gameMeta = update ? GAME_META[update.room.gameId] : undefined;
+  const boardRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className="mx-auto flex min-h-full max-w-6xl flex-col">
       <Header
         title={gameMeta?.title}
         right={
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1.5 text-xs text-white/50">
-              <span className="h-2 w-2 rounded-full" style={{ background: connected ? '#34d399' : '#f87171' }} />
-              <span className="hidden sm:inline">{connected ? 'bağlı' : 'bağlanıyor'}</span>
+          <div className="flex items-center gap-2">
+            {/* A word reads cleaner than a bare status dot; only the reconnecting
+                state needs to grab attention. */}
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                connected ? 'bg-emerald-400/10 text-emerald-300/90' : 'animate-pulse bg-amber-glow/15 text-amber-glow'
+              }`}
+            >
+              {connected ? 'Bağlı' : 'Bağlanıyor…'}
             </span>
             <button className="btn-ghost px-3 py-2 text-sm" onClick={() => navigate('/')}>
-              Çık
+              Oyundan çık
             </button>
           </div>
         }
@@ -100,6 +107,7 @@ export function Room({ roomId }: { roomId: string }) {
       ) : (
         <main className="grid flex-1 items-start gap-3 px-2 pb-6 sm:gap-4 sm:px-6 md:grid-cols-[1fr_300px] lg:grid-cols-[1fr_340px]">
           <div
+            ref={boardRef}
             className={`relative mx-auto w-full rounded-2xl transition-shadow ${yourTurn ? 'ring-2 ring-amber-glow/70 shadow-[0_0_30px_rgba(245,177,76,0.25)]' : ''}`}
             // Cap the board so it fits the viewport on landscape phones.
             style={{
@@ -152,6 +160,7 @@ export function Room({ roomId }: { roomId: string }) {
             )}
             {/* SH's lobby is its own UI with the invite link built in. */}
             {update.room.status === 'waiting' && !isSH && <WaitingOverlay roomId={roomId} />}
+            <PeerCursors containerRef={boardRef} gameId={update.room.gameId} youSeat={update.you.seat} roomId={roomId} />
             <ChatBubbles messages={update.room.chat} selfName={update.you.name} />
           </div>
 

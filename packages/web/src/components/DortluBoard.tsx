@@ -10,10 +10,19 @@ const C = DORTLU_COLS;
 const R = DORTLU_ROWS;
 
 function discColor(seat: number): string {
-  // seat 0 (white) = warm amber, seat 1 (black) = deep charcoal with a ring
+  // seat 0 (white) = warm amber; seat 1 (black) = graphite, lightened so it
+  // reads on the dark-blue board instead of sinking into it.
   return seat === 0
     ? 'radial-gradient(circle at 35% 30%, #ffd98a, #f5b14c 55%, #b97a1e)'
-    : 'radial-gradient(circle at 35% 30%, #5a5a66, #2c2c34 55%, #17171c)';
+    : 'radial-gradient(circle at 35% 30%, #9aa1ad, #565e6b 52%, #333a45)';
+}
+
+// A rim that lifts each disc off the dark navy holes — a cool light edge for
+// the graphite disc keeps it legible; the amber one just needs a soft shadow.
+function discRim(seat: number): string {
+  return seat === 0
+    ? '0 2px 4px rgba(0,0,0,0.4)'
+    : '0 2px 4px rgba(0,0,0,0.45), inset 0 0 0 2px rgba(255,255,255,0.20)';
 }
 
 export function DortluBoard({ view, onAction }: { view: DortluView; onAction: (a: DortluAction) => void }) {
@@ -64,11 +73,19 @@ export function DortluBoard({ view, onAction }: { view: DortluView; onAction: (a
                 >
                   {cell !== -1 && (
                     <span
-                      className={`block h-[82%] w-[82%] rounded-full ${inWin ? 'ring-4 ring-amber-glow' : ''}`}
+                      className="block h-[82%] w-[82%] rounded-full"
                       style={{
                         background: discColor(cell),
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
-                        animation: isLast ? `dortlu-drop 380ms cubic-bezier(0.4,0,0.7,0.4)` : undefined,
+                        // The winning four keep a steady amber glow so the line
+                        // that ended the round is unmistakable.
+                        boxShadow: inWin
+                          ? '0 0 0 3px rgba(245,177,76,0.95), 0 0 14px 4px rgba(245,177,76,0.6)'
+                          : discRim(cell),
+                        animation: inWin
+                          ? 'dortlu-win 1s ease-in-out infinite'
+                          : isLast
+                            ? `dortlu-drop 380ms cubic-bezier(0.4,0,0.7,0.4)`
+                            : undefined,
                       }}
                     />
                   )}

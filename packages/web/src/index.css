@@ -131,6 +131,28 @@ input:-webkit-autofill:focus {
     transform: translateY(0);
   }
 }
+/* Dama: the last move's trail fades out after a beat. */
+@keyframes dama-fade {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+/* 4'ü Bağla: the four winning discs light up and pulse when the round ends. */
+@keyframes dortlu-win {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgba(245, 177, 76, 0.9), 0 0 12px 3px rgba(245, 177, 76, 0.55);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(245, 177, 76, 1), 0 0 26px 8px rgba(245, 177, 76, 0.9);
+    transform: scale(1.06);
+  }
+}
 
 @layer components {
   .btn {

@@ -266,6 +266,24 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
       cb?.({ ok: true });
     });
 
+    // Live pointer sharing: relay the sender's cursor (board-fraction coords) to
+    // everyone else in the room. Purely ephemeral — never touches game state.
+    socket.on('cursor:move', (payload: { x?: unknown; y?: unknown }) => {
+      const room = rooms.roomForSocket(socket.id);
+      if (!room) return;
+      const x = typeof payload?.x === 'number' && Number.isFinite(payload.x) ? payload.x : null;
+      const y = typeof payload?.y === 'number' && Number.isFinite(payload.y) ? payload.y : null;
+      if (x === null || y === null) return;
+      const seat = rooms.seatForSocket(room, socket.id);
+      const name = seat?.name ?? room.spectators.get(socket.id)?.name ?? 'Rakip';
+      socket.to(room.id).emit('cursor:peer', { id: socket.id, x, y, seat: seat?.index ?? null, name });
+    });
+
+    socket.on('cursor:leave', () => {
+      const room = rooms.roomForSocket(socket.id);
+      if (room) socket.to(room.id).emit('cursor:gone', { id: socket.id });
+    });
+
     // Online matchmaking: queue per game; pair the first two waiting players.
     // Head-to-head games only — lobby games (secrethitler) gather via links.
     socket.on('matchmake', async (payload: { gameId?: string; name?: string; idToken?: string | null }, cb?: (ack: Ack) => void) => {
@@ -331,6 +349,8 @@ export function attachSockets(io: Server, rooms: RoomManager): void {
     socket.on('disconnect', () => {
       chatTimes.delete(socket.id);
       leaveQueues(socket.id);
+      const cursorRoom = rooms.roomForSocket(socket.id);
+      if (cursorRoom) socket.to(cursorRoom.id).emit('cursor:gone', { id: socket.id });
       const uid = socket.data?.uid as string | undefined;
       if (uid) presence.detach(uid, socket.id);
       const room = rooms.detach(socket.id);
