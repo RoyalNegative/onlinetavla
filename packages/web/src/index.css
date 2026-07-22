@@ -131,14 +131,18 @@ input:-webkit-autofill:focus {
     transform: translateY(0);
   }
 }
-/* Dama: the last move's trail fades out after a beat. */
-@keyframes dama-fade {
-  0%,
-  70% {
+/* Dama: the last move stays highlighted until you reply; it just flashes
+   brighter for a moment when it first appears. */
+.dama-lastmove {
+  opacity: 0.72;
+  animation: dama-lastmove-in 1s ease-out;
+}
+@keyframes dama-lastmove-in {
+  0% {
     opacity: 1;
   }
   100% {
-    opacity: 0;
+    opacity: 0.72;
   }
 }
 /* 4'ü Bağla: the four winning discs light up and pulse when the round ends. */

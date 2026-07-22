@@ -1,12 +1,13 @@
 // Türk Daması board: 8x8 SVG, click-to-move, flips for the black player.
 //
-// Move legibility (both players): while it's your turn, every capture target
-// shows how many pieces it takes (×N) and hovering one lights up exactly which
-// pieces that move removes and the path it travels. After ANY move the last
-// move replays as a short fading trail with its captures marked — so a two- or
-// three-piece capture is easy to follow instead of pieces just vanishing.
+// Move legibility (both players): the last move stays highlighted until you
+// reply — its origin, destination and every captured square are marked — so
+// when it becomes your turn you can always see what the opponent just played
+// (a two- or three-piece capture especially). While it's your turn, every
+// capture target also shows how many pieces it takes (×N) and hovering one
+// lights up exactly which pieces that move removes and the path it travels.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { DamaMove, DamaView } from '@tavla/engine';
 import { HitMark } from './Board';
 
@@ -71,8 +72,8 @@ export function DamaBoard({ view, interactive, onAction }: Props) {
 
   // The capture target under the pointer, previewed before you commit.
   const previewMove = hoverTarget !== null ? targets.get(hoverTarget) ?? null : null;
-  // The move just played, replayed briefly as a fading trail.
-  const lastFx = useDamaMoveFx(view);
+  // The last move played — kept on the board until the next move.
+  const last = view.lastMove;
 
   const pointsOf = (m: DamaMove) =>
     [m.from, ...m.captures, m.to]
@@ -172,15 +173,17 @@ export function DamaBoard({ view, interactive, onAction }: Props) {
           );
         })}
 
-        {/* last move: a fading trail from origin to landing, captures marked */}
-        {lastFx && (
-          <g key={lastFx.seq} pointerEvents="none" style={{ animation: 'dama-fade 1.4s ease-out forwards' }}>
-            <MovePath points={pointsOf(lastFx.move)} />
-            <SquareOutline i={lastFx.move.from} screen={screen} dashed />
-            <SquareOutline i={lastFx.move.to} screen={screen} />
-            {lastFx.move.captures.map((c) => {
+        {/* last move: kept until you reply, so the opponent's move stays
+            readable — origin (dashed), landing (solid) and captured squares.
+            Flashes brighter for a moment when it first appears. */}
+        {last && (
+          <g key={view.moveSeq} className="dama-lastmove" pointerEvents="none">
+            <MovePath points={pointsOf(last)} />
+            <SquareOutline i={last.from} screen={screen} dashed />
+            <SquareOutline i={last.to} screen={screen} />
+            {last.captures.map((c) => {
               const { cx, cy } = center(c);
-              return <HitMark key={c} x={cx} y={cy} r={R} />;
+              return <CapturedMark key={c} x={cx} y={cy} r={R} />;
             })}
           </g>
         )}
@@ -188,7 +191,7 @@ export function DamaBoard({ view, interactive, onAction }: Props) {
         {/* hover preview: the path and the exact pieces this move would take */}
         {interactive && previewMove && previewMove.captures.length > 0 && (
           <g pointerEvents="none">
-            <MovePath points={pointsOf(previewMove)} />
+            <MovePath points={pointsOf(previewMove)} animated />
             {previewMove.captures.map((c) => {
               const { cx, cy } = center(c);
               return (
@@ -224,16 +227,35 @@ export function DamaBoard({ view, interactive, onAction }: Props) {
   );
 }
 
-// A capture route drawn source → each eaten piece → landing: a dark halo under a
-// marching amber line, so the direction of a multi-jump is obvious.
-function MovePath({ points }: { points: string }) {
+// A capture route drawn source → each eaten piece → landing: a dark halo under
+// an amber line, so the direction of a multi-jump is obvious. `animated` adds
+// the marching dash (used for the live hover preview, not the resting trail).
+function MovePath({ points, animated }: { points: string; animated?: boolean }) {
   return (
     <>
       <polyline points={points} fill="none" stroke="#0c1118" strokeWidth={11} strokeOpacity={0.5} strokeLinejoin="round" strokeLinecap="round" />
       <polyline points={points} fill="none" stroke="#f5b14c" strokeWidth={5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray="14 10">
-        <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="0.6s" repeatCount="indefinite" />
+        {animated && <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="0.6s" repeatCount="indefinite" />}
       </polyline>
     </>
+  );
+}
+
+// Where a piece was captured on the last move: an amber ✕ (distinct from the
+// red "you can capture this" marks) left in place until the next move.
+function CapturedMark({ x, y, r }: { x: number; y: number; r: number }) {
+  const a = r * 0.52;
+  return (
+    <g>
+      <g stroke="#0c1118" strokeWidth={9} strokeLinecap="round" opacity={0.55}>
+        <line x1={x - a} y1={y - a} x2={x + a} y2={y + a} />
+        <line x1={x - a} y1={y + a} x2={x + a} y2={y - a} />
+      </g>
+      <g stroke="#f5b14c" strokeWidth={5} strokeLinecap="round">
+        <line x1={x - a} y1={y - a} x2={x + a} y2={y + a} />
+        <line x1={x - a} y1={y + a} x2={x + a} y2={y - a} />
+      </g>
+    </g>
   );
 }
 
@@ -252,21 +274,4 @@ function SquareOutline({ i, screen, dashed }: { i: number; screen: (i: number) =
       strokeDasharray={dashed ? '10 8' : undefined}
     />
   );
-}
-
-// Holds the last move for a beat after moveSeq advances, keyed by seq so the
-// fade restarts on each move (and self-clears if a new move arrives first).
-function useDamaMoveFx(view: DamaView): { move: DamaMove; seq: number } | null {
-  const [fx, setFx] = useState<{ move: DamaMove; seq: number } | null>(null);
-  const prevSeq = useRef(view.moveSeq);
-  useEffect(() => {
-    if (view.moveSeq === prevSeq.current) return;
-    prevSeq.current = view.moveSeq;
-    if (!view.lastMove) return;
-    const seq = view.moveSeq;
-    setFx({ move: view.lastMove, seq });
-    const t = setTimeout(() => setFx((f) => (f && f.seq === seq ? null : f)), 1400);
-    return () => clearTimeout(t);
-  }, [view.moveSeq, view.lastMove]);
-  return fx;
 }
