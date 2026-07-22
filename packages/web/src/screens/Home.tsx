@@ -82,6 +82,16 @@ const GAMES: { id: GameId; kind: 'duel' | 'party'; icon: string; title: string; 
     how: 'Sırayla bir sütun seçersin, pulun en alttaki boş göze düşer. Yatay, dikey veya çapraz fark etmez — kendi renginden 4 pulu ilk hizalayan kazanır. Basit görünür, iki dakikada öğrenilir.',
   },
   {
+    id: 'satranc',
+    kind: 'duel',
+    icon: '♟️',
+    title: 'Satranç',
+    sub: 'chess',
+    hero: 'satranç',
+    desc: 'Oyunların kralı: şah-mat edene kadar taşlarını kur, rakibini köşeye sıkıştır.',
+    how: 'Beyaz başlar; her taş kendi kuralınca gider. Rok, geçerken alma ve piyon terfisi dâhil tüm kurallar geçerli. Rakip kralı kaçamayacak şekilde tehdit edilince (şah-mat) oyun biter; hamlesi kalmayan ama şah da olmayan taraf pata düşer (berabere).',
+  },
+  {
     id: 'secrethitler',
     kind: 'party',
     icon: '🕵️',
@@ -404,7 +414,7 @@ export function Home() {
               Bota karşı pratik
             </a>
           </nav>
-          <p className="mt-3">Ücretsiz, üyeliksiz online tavla, dama, amiral battı, mangala ve 4'ü bağla — OnlineTavla</p>
+          <p className="mt-3">Ücretsiz, üyeliksiz online tavla, dama, amiral battı, mangala, 4'ü bağla ve satranç — OnlineTavla</p>
         </footer>
       </main>
     </div>

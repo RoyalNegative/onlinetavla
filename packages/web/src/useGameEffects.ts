@@ -3,7 +3,7 @@
 // games (tavla's dice/moves, dama's moves/captures, amiral's shots).
 
 import { useEffect, useRef } from 'react';
-import type { BattleshipView, DamaView, DortluView, MangalaView, SHView, TavlaView } from '@tavla/engine';
+import type { BattleshipView, ChessView, DamaView, DortluView, MangalaView, SHView, TavlaView } from '@tavla/engine';
 import { sfx } from './lib/sound';
 import type { RoomUpdate } from './protocol';
 
@@ -78,6 +78,16 @@ export function useGameEffects(update: RoomUpdate | null): void {
       moveSeq = v.moveSeq;
       if (moveSeq !== p.moveSeq) sfx.move();
       over = v.phase === 'over';
+      if (over && !p.over && you && v.winner) {
+        if (v.winner === you) sfx.win();
+        else sfx.lose();
+      }
+    } else if (update.room.gameId === 'satranc') {
+      const v = update.view as ChessView;
+      moveSeq = v.moveSeq;
+      // A check rings sharper than a plain move.
+      if (moveSeq !== p.moveSeq) v.check ? sfx.hit() : sfx.move();
+      over = v.over;
       if (over && !p.over && you && v.winner) {
         if (v.winner === you) sfx.win();
         else sfx.lose();

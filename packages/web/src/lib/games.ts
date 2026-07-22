@@ -13,5 +13,6 @@ export const GAME_META: Record<string, GameMeta> = {
   amiral: { title: 'Amiral Battı', icon: '🚢', tint: '#38bdf8' },
   mangala: { title: 'Mangala', icon: '🪨', tint: '#e0785a' },
   dortlu: { title: "4'ü Bağla", icon: '🔴', tint: '#f43f5e' },
+  satranc: { title: 'Satranç', icon: '♟️', tint: '#94a3b8' },
   secrethitler: { title: 'Secret Hitler', icon: '🕵️', tint: '#be123c' },
 };

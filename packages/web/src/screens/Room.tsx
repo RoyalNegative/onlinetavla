@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { BattleshipView, DamaView, DortluView, MangalaView, SHView, TavlaView } from '@tavla/engine';
+import type { BattleshipView, ChessView, DamaView, DortluView, MangalaView, SHView, TavlaView } from '@tavla/engine';
 import { treasuryOf } from '@tavla/engine';
 import { AddFriendChip } from '../components/AddFriendChip';
 import { BattleshipBoard, useBattleshipFx } from '../components/BattleshipBoard';
@@ -7,6 +7,7 @@ import { BattleshipPanel } from '../components/BattleshipPanel';
 import { Board } from '../components/Board';
 import { Chat } from '../components/Chat';
 import { ChatBubbles } from '../components/ChatBubbles';
+import { ChessBoard } from '../components/ChessBoard';
 import { GAME_META } from '../lib/games';
 import { Controls } from '../components/Controls';
 import { DamaBoard } from '../components/DamaBoard';
@@ -56,12 +57,14 @@ export function Room({ roomId }: { roomId: string }) {
   const isAmiral = update?.room.gameId === 'amiral';
   const isMangala = update?.room.gameId === 'mangala';
   const isDortlu = update?.room.gameId === 'dortlu';
+  const isSatranc = update?.room.gameId === 'satranc';
   const isSH = update?.room.gameId === 'secrethitler';
   // Only read inside the inThisRoom branch, where `update` is non-null.
   const tview = update?.view as TavlaView;
   const dview = update?.view as DamaView;
   const mview = update?.view as MangalaView;
   const cview = update?.view as DortluView;
+  const chview = update?.view as ChessView;
   const shview = update?.view as SHView;
 
   // Amiral: render (and sound) one bomb-flight behind the live view so the
@@ -119,7 +122,7 @@ export function Room({ roomId }: { roomId: string }) {
                     ? '760px'
                     : isDortlu
                       ? '560px'
-                      : isDama
+                      : isDama || isSatranc
                         ? 'calc(100dvh - 150px)'
                         : 'calc((100dvh - 150px) * 5 / 3)',
             }}
@@ -149,6 +152,8 @@ export function Room({ roomId }: { roomId: string }) {
               <MangalaBoard view={mview} onAction={sendAction} />
             ) : isDortlu ? (
               <DortluBoard view={cview} onAction={sendAction} />
+            ) : isSatranc ? (
+              <ChessBoard view={chview} interactive={chview.yourTurn && chview.legalMoves.length > 0} onAction={sendAction} />
             ) : isDama ? (
               <DamaBoard view={dview} interactive={dview.yourTurn && dview.legalMoves.length > 0} onAction={sendAction} />
             ) : (
@@ -207,6 +212,25 @@ export function Room({ roomId }: { roomId: string }) {
                 lineFor={(c) => `${c === 'white' ? 'Sarı pul' : 'Siyah pul'}`}
                 playingText="Sıra sende — bir sütun seç"
                 waitingText="Rakip oynuyor…"
+                onResign={() => sendAction({ type: 'resign' })}
+                onRematch={voteRematch}
+                rematch={update.room.rematch}
+              />
+            ) : isSatranc ? (
+              <GenericPanel
+                heading="Satranç"
+                players={update.room.players}
+                youSeat={update.you.seat}
+                youAre={chview.youAre}
+                turn={chview.turn}
+                winner={chview.winner}
+                over={chview.over}
+                lineFor={(c) => {
+                  const label = c === 'white' ? 'Beyaz' : 'Siyah';
+                  return chview.check && !chview.over && chview.turn === c ? `${label} · şah altında!` : label;
+                }}
+                playingText={chview.check ? '⚠️ Şah! Kralını kurtar' : 'Sıra sende — bir taş oyna'}
+                waitingText="Rakip düşünüyor…"
                 onResign={() => sendAction({ type: 'resign' })}
                 onRematch={voteRematch}
                 rematch={update.room.rematch}

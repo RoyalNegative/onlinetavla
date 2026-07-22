@@ -11,8 +11,8 @@
 import { useEffect, useState, type RefObject } from 'react';
 import { socket } from '../lib/socket';
 
-const CURSOR_GAMES = new Set(['tavla', 'dama', 'mangala', 'dortlu']);
-const MIRROR_180 = new Set(['tavla', 'dama', 'mangala']);
+const CURSOR_GAMES = new Set(['tavla', 'dama', 'mangala', 'dortlu', 'satranc']);
+const MIRROR_180 = new Set(['tavla', 'dama', 'mangala', 'satranc']);
 const SEND_EVERY_MS = 45;
 const STALE_MS = 4000;
 

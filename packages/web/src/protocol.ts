@@ -1,6 +1,6 @@
 // Client-side copy of the server's socket contracts (engine types are shared).
 
-import type { Action, BattleshipView, DamaView, DortluView, MangalaView, SHView, TavlaView } from '@tavla/engine';
+import type { Action, BattleshipView, ChessView, DamaView, DortluView, MangalaView, SHView, TavlaView } from '@tavla/engine';
 
 export interface PlayerInfo {
   seat: number;
@@ -32,7 +32,7 @@ export interface RoomSnapshot {
 
 export interface RoomUpdate {
   you: { seat: number | null; name: string; uid: string | null };
-  view: TavlaView | DamaView | BattleshipView | MangalaView | DortluView | SHView;
+  view: TavlaView | DamaView | BattleshipView | MangalaView | DortluView | ChessView | SHView;
   room: RoomSnapshot;
 }
 
