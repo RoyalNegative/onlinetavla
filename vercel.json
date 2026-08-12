@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "",
+  "buildCommand": "",
+  "outputDirectory": "vercel-redirect",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "destination": "https://onlinetavla-asaby.com/:path*",
+      "permanent": true
+    }
+  ]
+}

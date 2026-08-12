@@ -1,0 +1,42 @@
+<!doctype html>
+<!--
+  Bu klasör sadece Vercel'in bir çıktı dizini beklemesi için var. Asıl iş
+  vercel.json'daki 308 yönlendirmede; bu sayfa yalnızca o yönlendirme
+  atlanırsa devreye giren yedek. Oyunun kendisi Render'da çalışır.
+-->
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="refresh" content="0; url=https://onlinetavla-asaby.com/" />
+    <meta name="robots" content="noindex" />
+    <link rel="canonical" href="https://onlinetavla-asaby.com/" />
+    <title>Tavla — sitenin yeni adresi</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #0f1720;
+        color: #e6edf3;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        text-align: center;
+        padding: 24px;
+      }
+      a {
+        color: #f5b53f;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p style="font-size: 44px; margin: 0 0 8px">🎲</p>
+      <p>Site taşındı — yönlendiriliyorsun…</p>
+      <p><a href="https://onlinetavla-asaby.com/">onlinetavla-asaby.com</a></p>
+    </main>
+    <script>
+      location.replace("https://onlinetavla-asaby.com" + location.pathname + location.search);
+    </script>
+  </body>
+</html>

@@ -76,6 +76,12 @@ Tek bir Node servisi yeterli. **Render / Railway / Fly** gibi ücretsiz katmanla
 > ömürlü ve durumsuz olduğundan çöker. Kalıcı Node süreci olan bir platform
 > kullan.
 
+Eski bir Vercel denemesi `onlinetavla.vercel.app` adresinde duruyordu ve tam da
+bu yüzden `FUNCTION_INVOCATION_FAILED` ("This Serverless Function has crashed")
+veriyordu. Repodaki `vercel.json` artık o adrese gelen her isteği kalıcı (308)
+olarak `onlinetavla-asaby.com`'a yönlendirir — build çalıştırmaz, sadece
+`vercel-redirect/` klasörünü yayınlar. Render tarafını etkilemez.
+
 **Render ile tek tık:** repoda `render.yaml` var. Render → **New + → Blueprint**
 → bu repoyu seç → deploy. (Ücretsiz katman bir süre sonra uykuya geçer; ilk
 istekte ~50 sn soğuk başlatma olur.)
