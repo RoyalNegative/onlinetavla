@@ -190,12 +190,12 @@ export function Board({ view, interactive, onAction }: Props) {
             <g key={idx}>
               <polygon points={`${x - COL_W / 2 + 4},${base} ${x + COL_W / 2 - 4},${base} ${x},${apexY}`} fill={fill} opacity={0.92} />
               {isTarget && (
-                <circle cx={x} cy={row === 'top' ? base + 26 : base - 26} r="9" fill={hittable.has(idx) ? '#f87171' : '#f5b14c'}>
+                <circle cx={x} cy={row === 'top' ? base + 26 : base - 26} r="9" fill={hittable.has(idx) ? '#ff4d6d' : '#f2894f'}>
                   <animate attributeName="opacity" values="0.4;1;0.4" dur="1.1s" repeatCount="indefinite" />
                 </circle>
               )}
               {isSource && (
-                <polygon points={`${x - COL_W / 2 + 4},${base} ${x + COL_W / 2 - 4},${base} ${x},${apexY}`} fill="none" stroke="#f5b14c" strokeWidth="2.5" opacity="0.7" />
+                <polygon points={`${x - COL_W / 2 + 4},${base} ${x + COL_W / 2 - 4},${base} ${x},${apexY}`} fill="none" stroke="#f2894f" strokeWidth="2.5" opacity="0.7" />
               )}
             </g>
           );
@@ -219,7 +219,7 @@ export function Board({ view, interactive, onAction }: Props) {
                   cy={checkerY(row, i)}
                   r={CHK_R}
                   fill={color === 'white' ? 'url(#wchk)' : 'url(#bchk)'}
-                  stroke={isSel && i === shown - 1 ? '#f5b14c' : 'rgba(0,0,0,0.35)'}
+                  stroke={isSel && i === shown - 1 ? '#f2894f' : 'rgba(0,0,0,0.35)'}
                   strokeWidth={isSel && i === shown - 1 ? 3.5 : 1.5}
                 />
               ))}
@@ -243,7 +243,7 @@ export function Board({ view, interactive, onAction }: Props) {
           return (
             <g key={`bar-${color}`}>
               {Array.from({ length: Math.min(n, 4) }, (_, i) => (
-                <circle key={i} cx={BAR_X} cy={barCheckerY(side, i)} r={CHK_R} fill={fill} stroke={sel ? '#f5b14c' : 'rgba(0,0,0,0.35)'} strokeWidth={sel ? 3.5 : 1.5} />
+                <circle key={i} cx={BAR_X} cy={barCheckerY(side, i)} r={CHK_R} fill={fill} stroke={sel ? '#f2894f' : 'rgba(0,0,0,0.35)'} strokeWidth={sel ? 3.5 : 1.5} />
               ))}
               {n > 4 && (
                 <text x={BAR_X} y={barCheckerY(side, 3) + 5} textAnchor="middle" fontSize="18" fontWeight="800" fill={color === 'white' ? '#3a2c12' : '#f3e9d2'}>
@@ -263,7 +263,7 @@ export function Board({ view, interactive, onAction }: Props) {
           }),
         )}
         {offAvailable && (
-          <rect x={TRAY_X - TRAY_W / 2 + 4} y={VB_H / 2} width={TRAY_W - 8} height={VB_H / 2 - MARGIN} rx="8" fill="none" stroke="#f5b14c" strokeWidth="3">
+          <rect x={TRAY_X - TRAY_W / 2 + 4} y={VB_H / 2} width={TRAY_W - 8} height={VB_H / 2 - MARGIN} rx="8" fill="none" stroke="#f2894f" strokeWidth="3">
             <animate attributeName="opacity" values="0.3;1;0.3" dur="1.1s" repeatCount="indefinite" />
           </rect>
         )}

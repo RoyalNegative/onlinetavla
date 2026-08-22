@@ -4,6 +4,7 @@
 // keep their own richer layouts.
 
 import { useState } from 'react';
+import { Eye, Handshake, Trophy } from 'lucide-react';
 import type { PlayerInfo } from '../protocol';
 
 type Color = 'white' | 'black';
@@ -22,15 +23,23 @@ function Avatar({ name, url, color }: { name: string; url: string | null; color:
 
 function Row({ color, player, line, active, isYou }: { color: Color; player: PlayerInfo | undefined; line: string; active: boolean; isYou: boolean }) {
   return (
-    <div className={`flex items-center gap-3 rounded-xl px-3 py-2 transition ${active ? 'bg-amber-glow/15 ring-1 ring-amber-glow/50' : 'bg-white/5'}`}>
+    <div
+      className={`flex items-center gap-3 rounded-lg border-l-2 py-2 pl-3 pr-3 transition-all duration-300 ${
+        active ? 'border-accent bg-accent/[0.08]' : 'border-cream/10 bg-cream/[0.02]'
+      }`}
+    >
       <Avatar name={player?.name ?? '—'} url={player?.avatar ?? null} color={color} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate font-semibold">{player?.name ?? 'Bekleniyor…'}</span>
-          {isYou && <span className="rounded bg-white/10 px-1.5 text-[10px] font-bold text-white/70">SEN</span>}
+          {isYou && (
+            <span className="rounded border border-cream/15 px-1.5 py-px text-[9px] font-bold tracking-[0.1em] text-cream/50">
+              SEN
+            </span>
+          )}
           <span className="h-2.5 w-2.5 rounded-full" style={{ background: player ? (player.connected ? '#34d399' : '#f87171') : '#6b7280' }} />
         </div>
-        <span className="text-xs text-white/50">{line}</span>
+        <span className="text-[11px] text-cream/40">{line}</span>
       </div>
     </div>
   );
@@ -76,7 +85,7 @@ export function GenericPanel({
   return (
     <div className="space-y-4">
       <div className="card p-3">
-        <div className="mb-2 px-1 text-xs text-white/50">{heading}</div>
+        <div className="mb-2.5 px-1"><span className="eyebrow">{heading}</span></div>
         <div className="space-y-2">
           <Row color="black" player={black} line={lineFor('black')} active={activeTurn === 'black'} isYou={youSeat === 1} />
           <Row color="white" player={white} line={lineFor('white')} active={activeTurn === 'white'} isYou={youSeat === 0} />
@@ -86,14 +95,20 @@ export function GenericPanel({
       <div className="card space-y-3 p-4">
         {over ? (
           <div className="space-y-3 text-center">
-            <p className="text-lg font-bold">
-              {draw
-                ? '🤝 Berabere!'
-                : winner === youAre
-                  ? '🏆 Kazandın!'
-                  : spectator
-                    ? `${winner === 'white' ? 'Beyaz' : 'Siyah'} kazandı`
-                    : 'Kaybettin'}
+            <p className="flex items-center justify-center gap-2 font-display text-[22px] font-semibold tracking-[-0.02em]">
+              {draw ? (
+                <>
+                  <Handshake size={19} className="text-cream/50" /> Berabere
+                </>
+              ) : winner === youAre ? (
+                <>
+                  <Trophy size={19} className="text-accent" /> Kazandın
+                </>
+              ) : spectator ? (
+                `${winner === 'white' ? 'Beyaz' : 'Siyah'} kazandı`
+              ) : (
+                'Kaybettin'
+              )}
             </p>
             {!spectator && (
               <button className="btn-primary w-full" onClick={onRematch}>
@@ -102,19 +117,21 @@ export function GenericPanel({
             )}
           </div>
         ) : spectator ? (
-          <p className="text-center text-sm text-white/50">İzleyici modundasın 👀</p>
+          <p className="flex items-center justify-center gap-2 text-sm text-cream/45">
+            <Eye size={15} /> İzleyici modundasın
+          </p>
         ) : (
           <>
-            <p className="text-center text-sm text-white/70">{turn === youAre ? playingText : waitingText}</p>
+            <p className="text-center text-sm text-cream/70">{turn === youAre ? playingText : waitingText}</p>
             <div className="text-center">
               {confirm ? (
                 <div className="flex items-center justify-center gap-2 text-sm">
-                  <span className="text-white/60">Emin misin?</span>
+                  <span className="text-cream/60">Emin misin?</span>
                   <button className="text-rose-400 hover:underline" onClick={onResign}>Evet</button>
-                  <button className="text-white/60 hover:underline" onClick={() => setConfirm(false)}>Vazgeç</button>
+                  <button className="text-cream/60 hover:underline" onClick={() => setConfirm(false)}>Vazgeç</button>
                 </div>
               ) : (
-                <button className="text-xs text-white/40 hover:text-rose-400" onClick={() => setConfirm(true)}>Pes et</button>
+                <button className="text-[11px] text-cream/30 transition-colors hover:text-danger" onClick={() => setConfirm(true)}>Pes et</button>
               )}
             </div>
           </>

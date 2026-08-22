@@ -242,7 +242,7 @@ function Grid({
                         ? 'bg-slate-400/70'
                         : 'bg-transparent'
                 } ${fresh ? 'cursor-crosshair hover:bg-sky-300/25' : ''} ${
-                  lastCell === cell ? 'z-10 ring-2 ring-amber-glow' : ''
+                  lastCell === cell ? 'z-10 ring-2 ring-accent' : ''
                 }`}
               >
                 {hit === true && <Mark>✕</Mark>}
@@ -455,7 +455,7 @@ function PlacementEditor({ noTouch, onSubmit }: { noTouch: boolean; onSubmit: (s
               onClick={() => rotate(i)}
               title="Döndür"
               className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm transition ${
-                drag?.idx === i ? 'bg-amber-glow/20 ring-1 ring-amber-glow/60' : 'bg-white/5 hover:bg-white/10'
+                drag?.idx === i ? 'bg-accent/20 ring-1 ring-accent/60' : 'bg-white/5 hover:bg-white/10'
               }`}
             >
               <span className="font-semibold">{SHIP_NAMES[i]}</span>

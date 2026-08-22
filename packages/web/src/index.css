@@ -14,11 +14,42 @@ body,
 
 body {
   margin: 0;
-  background:
-    radial-gradient(1200px 600px at 50% -10%, rgba(245, 177, 76, 0.08), transparent 60%),
-    linear-gradient(180deg, #0c1118 0%, #0a0e15 100%);
-  color: #e7eefc;
+  background: #0b0b0c;
+  color: theme('colors.cream.DEFAULT');
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11'; /* Inter's friendlier a/g/l/1 */
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Film grain over the whole app. Flat dark UI is what reads "cheap"; a little
+   noise gives the black an actual surface. Kept under 5% so type stays crisp,
+   and pointer-events:none so it never eats a click. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Headlines are the one place with real optical sizing — Fraunces' opsz axis
+   is what makes a 76px line look drawn rather than scaled up. */
+.font-display {
+  font-variation-settings: 'opsz' 96, 'SOFT' 20, 'WONK' 1;
+}
+
+::selection {
+  background: theme('colors.accent.DEFAULT');
+  color: theme('colors.ink.900');
+}
+
+/* One visible focus treatment for the whole app, keyboard-only. */
+:focus-visible {
+  outline: 2px solid theme('colors.accent.soft');
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* Chrome autofill paints inputs pale yellow with black text — force our dark
@@ -26,9 +57,9 @@ body {
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #fff;
-  -webkit-box-shadow: 0 0 0 1000px #10192b inset;
-  caret-color: #fff;
+  -webkit-text-fill-color: theme('colors.cream.DEFAULT');
+  -webkit-box-shadow: 0 0 0 1000px theme('colors.ink.800') inset;
+  caret-color: theme('colors.cream.DEFAULT');
   transition: background-color 999999s ease-in-out 0s;
 }
 
@@ -37,8 +68,18 @@ input:-webkit-autofill:focus {
   width: 6px;
 }
 .scroll-thin::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(250, 247, 242, 0.14);
   border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ---- Amiral Battı shot effects ---- */
@@ -149,34 +190,61 @@ input:-webkit-autofill:focus {
 @keyframes dortlu-win {
   0%,
   100% {
-    box-shadow: 0 0 0 3px rgba(245, 177, 76, 0.9), 0 0 12px 3px rgba(245, 177, 76, 0.55);
+    box-shadow: 0 0 0 3px rgba(242, 137, 79, 0.9), 0 0 12px 3px rgba(242, 137, 79, 0.55);
     transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 0 4px rgba(245, 177, 76, 1), 0 0 26px 8px rgba(245, 177, 76, 0.9);
+    box-shadow: 0 0 0 4px rgba(242, 137, 79, 1), 0 0 26px 8px rgba(242, 137, 79, 0.9);
     transform: scale(1.06);
   }
 }
 
 @layer components {
+  /* ── Controls ────────────────────────────────────────────────────────────
+     Tighter radius than before (10px, not 12–16px). Rounded-everything is one
+     of the loudest "template" tells; a crisper corner reads as considered. */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-semibold
-      transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40;
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-[10px] px-4 py-2.5
+      text-sm font-semibold tracking-[-0.01em] transition-all duration-200 ease-out
+      active:scale-[0.985] disabled:pointer-events-none;
   }
   .btn-primary {
-    @apply btn bg-amber-glow text-ink-900 shadow-lg shadow-amber-glow/20 hover:brightness-105;
+    @apply btn bg-accent text-ink-900 shadow-[0_2px_10px_-2px_rgba(224,96,58,0.4)]
+      hover:bg-accent-soft hover:shadow-[0_6px_20px_-6px_rgba(224,96,58,0.6)]
+      disabled:bg-cream/[0.05] disabled:text-cream/25 disabled:shadow-none;
   }
   .btn-ghost {
-    @apply btn bg-white/5 text-white hover:bg-white/10;
+    @apply btn border border-cream/12 bg-cream/[0.03] text-cream/85
+      hover:border-cream/25 hover:bg-cream/[0.07] hover:text-cream
+      disabled:border-cream/[0.06] disabled:bg-transparent disabled:text-cream/20;
+  }
+  .btn-quiet {
+    @apply btn px-3 text-cream/50 hover:text-cream disabled:text-cream/20;
   }
   .btn-danger {
-    @apply btn bg-rose-500/90 text-white hover:bg-rose-500;
+    @apply btn border border-danger/30 bg-danger/10 text-danger hover:bg-danger/20;
   }
+
+  /* ── Containers ──────────────────────────────────────────────────────────
+     One card style. Depth is a hairline + a soft lift, never a heavy border. */
   .card {
-    @apply rounded-2xl border border-white/10 bg-ink-800/80 backdrop-blur;
+    @apply rounded-2xl border border-cream/[0.09] bg-ink-800/70 shadow-lift backdrop-blur-xl;
   }
+
   .input {
-    @apply w-full rounded-xl border border-white/10 bg-ink-900/70 px-4 py-3 text-white
-      outline-none placeholder:text-white/30 focus:border-amber-glow/60;
+    @apply w-full rounded-[10px] border border-cream/12 bg-ink-900/60 px-4 py-3 text-[15px]
+      text-cream outline-none ring-0 transition-all duration-200 placeholder:text-cream/25
+      focus:border-accent/70 focus:bg-ink-900 focus:ring-4 focus:ring-accent/10
+      focus-visible:outline-none;
+  }
+
+  /* ── Editorial furniture ─────────────────────────────────────────────────
+     The small caps label + hairline rule that opens a section. This pairing is
+     what carries the layout, so it's a component rather than repeated classes. */
+  .eyebrow {
+    @apply text-eyebrow font-semibold uppercase text-cream/40;
+  }
+  .rule {
+    @apply h-px flex-1 bg-gradient-to-r from-cream/12 to-transparent;
   }
 }

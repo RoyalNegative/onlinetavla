@@ -3,17 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0f1720" />
+    <meta name="theme-color" content="#0b0b0c" />
 
     <!-- Speed up first paint: warm up the Firebase/Google connections used at load. -->
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://www.googleapis.com" crossorigin />
 
-    <!-- Display face for headings (latin-ext covers Turkish). -->
+    <!-- Type pairing (both include latin-ext, which covers Turkish):
+         Fraunces = editorial display face for headlines and the wordmark,
+         Inter    = UI/body. Inter was declared in the Tailwind config but never
+                    actually linked, so body copy used to fall back to Segoe UI. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,400..900,0..100,0..1&family=Inter:wght@400..700&display=swap"
       rel="stylesheet"
     />
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -141,16 +144,16 @@
     <!-- Crawlable fallback: search engines & social scrapers see this in the raw HTML.
          React replaces it on mount, so users see the live app. -->
     <div id="root">
-      <main style="max-width: 720px; margin: 0 auto; padding: 40px 20px; font-family: system-ui, sans-serif; color: #e5e7eb; background: #0f1720;">
+      <main style="max-width: 720px; margin: 0 auto; padding: 40px 20px; font-family: system-ui, sans-serif; color: #faf7f2; background: #0b0b0c;">
         <h1 style="font-size: 2rem; font-weight: 800;">Online Tavla — arkadaşınla ücretsiz oyna</h1>
-        <p style="color: #9ca3af;">
+        <p style="color: #a5a19a;">
           <strong>OnlineTavla</strong>, indirme ve üyelik gerektirmeden tarayıcıda oynanan
           ücretsiz online tavla oyunudur. Oda kur, çıkan linki arkadaşına gönder ve
           saniyeler içinde oynamaya başla. Reklam yok, karmaşa yok — sadece hızlı ve
           şık bir tavla deneyimi.
         </p>
         <h2 style="font-size: 1.25rem; font-weight: 700;">Neden OnlineTavla?</h2>
-        <ul style="color: #9ca3af; line-height: 1.8;">
+        <ul style="color: #a5a19a; line-height: 1.8;">
           <li><strong>Anında başla:</strong> Oda kur, linki paylaş — kayıt yok, kurulum yok.</li>
           <li><strong>Ücretsiz &amp; reklamsız:</strong> Her şey ücretsiz, üyelik gerekmez.</li>
           <li><strong>Klasik &amp; çift zarlı tavla:</strong> İstersen doubling cube ile backgammon, ilk N sayıya maç.</li>
@@ -159,10 +162,10 @@
           <li><strong>Dama da var:</strong> Türk daması aynı hızlı arayüzde.</li>
           <li><strong>Adil oyun:</strong> Zarları sunucu atar, hamleler doğrulanır — hile yok.</li>
         </ul>
-        <p style="color: #9ca3af;">
+        <p style="color: #a5a19a;">
           Uygulama yükleniyor… JavaScript etkinse oyun birkaç saniye içinde açılır.
-          <a href="/nasil-oynanir" style="color: #f5b942;">Tavla nasıl oynanır?</a> ·
-          <a href="/pratik" style="color: #f5b942;">Bota karşı pratik yap.</a>
+          <a href="/nasil-oynanir" style="color: #e0603a;">Tavla nasıl oynanır?</a> ·
+          <a href="/pratik" style="color: #e0603a;">Bota karşı pratik yap.</a>
         </p>
       </main>
     </div>

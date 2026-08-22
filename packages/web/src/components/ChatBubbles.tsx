@@ -57,12 +57,12 @@ export function ChatBubbles({ messages, selfName }: { messages: ChatMessageDTO[]
       {bubbles.map(({ msg, leaving }) => (
         <div
           key={msg.id}
-          className={`max-w-full animate-fade-up rounded-2xl rounded-br-sm border border-white/10 bg-ink-700/95 px-3.5 py-2.5 shadow-xl backdrop-blur transition-all duration-300 ${
+          className={`max-w-full animate-fade-up rounded-2xl rounded-br-sm border border-cream/10 bg-ink-700/95 px-3.5 py-2.5 shadow-xl backdrop-blur transition-all duration-300 ${
             leaving ? 'translate-x-3 opacity-0' : 'opacity-100'
           }`}
         >
-          <p className="text-[11px] font-semibold text-amber-glow/90">{msg.from}</p>
-          <p className={`break-words ${msg.kind === 'emoji' ? 'text-3xl leading-tight' : 'text-sm text-white/90'}`}>{msg.text}</p>
+          <p className="text-[11px] font-semibold text-accent/90">{msg.from}</p>
+          <p className={`break-words ${msg.kind === 'emoji' ? 'text-3xl leading-tight' : 'text-sm text-cream/90'}`}>{msg.text}</p>
         </div>
       ))}
     </div>

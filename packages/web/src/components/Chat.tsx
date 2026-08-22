@@ -39,14 +39,14 @@ export function Chat({
         className="scroll-thin mb-2 space-y-1.5 overflow-y-auto pr-1"
         style={{ height: 220 }}
       >
-        {messages.length === 0 && <p className="px-1 text-xs text-white/30">Sohbet burada…</p>}
+        {messages.length === 0 && <p className="px-1 text-[12px] text-cream/25">Sohbet burada…</p>}
         {messages.map((m) =>
           m.kind === 'system' ? (
-            <p key={m.id} className="text-center text-[11px] italic text-white/30">— {m.text} —</p>
+            <p key={m.id} className="text-center text-[11px] text-cream/25">— {m.text} —</p>
           ) : (
             <div key={m.id} className="text-sm">
-              <span className="font-semibold text-amber-glow/90">{m.from}: </span>
-              <span className={m.kind === 'emoji' ? 'text-xl' : 'text-white/85'}>{m.text}</span>
+              <span className="font-semibold text-accent/85">{m.from}: </span>
+              <span className={m.kind === 'emoji' ? 'text-xl' : 'text-cream/80'}>{m.text}</span>
             </div>
           ),
         )}
@@ -57,7 +57,7 @@ export function Chat({
         {EMOJIS.map((e) => (
           <button
             key={e}
-            className="min-w-0 flex-1 rounded-lg bg-white/5 py-1 text-center text-lg transition hover:bg-white/10"
+            className="min-w-0 flex-1 rounded-lg border border-transparent py-1 text-center text-lg transition-colors hover:border-cream/12 hover:bg-cream/[0.06]"
             onClick={() => onSend(e, 'emoji')}
           >
             {e}
@@ -73,7 +73,7 @@ export function Chat({
           placeholder="Mesaj yaz…"
           className="input py-2"
         />
-        <button type="submit" className="btn-ghost px-3">
+        <button type="submit" className="btn-ghost shrink-0 px-3.5">
           Gönder
         </button>
       </form>

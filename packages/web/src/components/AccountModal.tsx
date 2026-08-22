@@ -3,7 +3,8 @@
 // reward registering.
 
 import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import * as Dialog from '@radix-ui/react-dialog';
+import { X } from 'lucide-react';
 import type { GameId } from '@tavla/engine';
 import {
   addFriend as apiAddFriend,
@@ -25,14 +26,14 @@ import {
 } from '../lib/api';
 import { useStore } from '../store';
 
-type Tab = 'leaderboard' | 'profile' | 'matches' | 'friends' | 'tournament';
+export type Tab = 'leaderboard' | 'profile' | 'matches' | 'friends' | 'tournament';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
 const TABS: { key: Tab; label: string }[] = [
-  { key: 'leaderboard', label: '🏆 Sıralama' },
-  { key: 'tournament', label: '🎪 Turnuva' },
-  { key: 'friends', label: '👥 Arkadaşlar' },
+  { key: 'leaderboard', label: 'Sıralama' },
+  { key: 'tournament', label: 'Turnuva' },
+  { key: 'friends', label: 'Arkadaşlar' },
   { key: 'profile', label: 'Profilim' },
   { key: 'matches', label: 'Maçlarım' },
 ];
@@ -63,28 +64,47 @@ export function AccountModal({ initialTab, onClose }: { initialTab: Tab; onClose
     stripRef.current?.querySelector('[data-active="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
   }, [tab]);
 
-  // Portal to <body>: callers render this inside .card containers whose
-  // backdrop-filter would otherwise trap the fixed overlay in their stacking
-  // context (the modal appeared *behind* the cards below it).
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
-      <div className="card w-full max-w-lg overflow-hidden p-5" onClick={(e) => e.stopPropagation()}>
-        {/* Title bar owns the ✕ so the tab strip below gets the full width and
-            never wraps a lone tab; the strip scrolls sideways when it must. */}
-        <div className="mb-3">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-bold text-white/80">Hesabım</span>
-            <button onClick={onClose} className="text-white/50 hover:text-white" aria-label="Kapat">
-              ✕
-            </button>
+  // Radix owns the dialog semantics this used to be missing entirely: Escape
+  // to close, a focus trap, focus returned to the trigger, background scroll
+  // lock, and aria-modal. Its Portal also still renders to <body>, which is
+  // what keeps the overlay out of the backdrop-filtered .card stacking context
+  // that used to render the modal *behind* the cards below it.
+  return (
+    <Dialog.Root open onOpenChange={(o) => !o && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-ink-900/75 backdrop-blur-sm" />
+        <Dialog.Content
+          aria-describedby={undefined}
+          className="card fixed left-1/2 top-1/2 z-50 w-[min(100%-2rem,34rem)] max-h-[min(88dvh,44rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto p-5 shadow-pop"
+        >
+        {/* Title bar owns the close control so the tab strip below gets the full
+            width and never wraps a lone tab; the strip scrolls when it must. */}
+        <div className="mb-4">
+          <div className="mb-3 flex items-center justify-between">
+            <Dialog.Title className="eyebrow">Hesabım</Dialog.Title>
+            <Dialog.Close
+              className="grid h-7 w-7 place-items-center rounded-md text-cream/40 transition-colors hover:bg-cream/[0.06] hover:text-cream"
+              aria-label="Kapat"
+            >
+              <X size={15} />
+            </Dialog.Close>
           </div>
-          <div ref={stripRef} className="scroll-thin -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+          {/* Tabs as an underlined strip: a row of filled pills competed with
+              the content underneath it. */}
+          <div
+            ref={stripRef}
+            className="scroll-thin -mx-1 flex gap-5 overflow-x-auto border-b border-cream/[0.09] px-1"
+          >
             {TABS.map((t) => (
               <button
                 key={t.key}
                 data-active={tab === t.key}
                 onClick={() => setTab(t.key)}
-                className={`shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm font-semibold ${tab === t.key ? 'bg-amber-glow text-ink-900' : 'bg-white/5 text-white/70'}`}
+                className={`shrink-0 whitespace-nowrap border-b-2 pb-2.5 text-[13px] font-semibold transition-colors ${
+                  tab === t.key
+                    ? 'border-accent text-cream'
+                    : 'border-transparent text-cream/40 hover:text-cream/75'
+                }`}
               >
                 {t.label}
               </button>
@@ -95,14 +115,14 @@ export function AccountModal({ initialTab, onClose }: { initialTab: Tab; onClose
         {tab === 'leaderboard' && (
           <div className="space-y-1">
             <div className="scroll-thin max-h-80 space-y-1 overflow-y-auto">
-              {board.length === 0 && <p className="text-sm text-white/40">Henüz sıralama yok. İlk olan sen ol!</p>}
+              {board.length === 0 && <p className="text-sm text-cream/40">Henüz sıralama yok. İlk olan sen ol!</p>}
               {board.map((e, i) => (
                 <LeaderRow key={e.uid} rank={MEDALS[i] ?? String(i + 1)} entry={e} winRate={winRate} mine={e.uid === authUser?.uid} />
               ))}
             </div>
             {me && me.rank && !inBoard && board.length > 0 && (
               <>
-                <div className="text-center text-xs text-white/25">···</div>
+                <div className="text-center text-xs text-cream/25">···</div>
                 <LeaderRow rank={String(me.rank)} entry={me} winRate={winRate} mine />
               </>
             )}
@@ -113,9 +133,9 @@ export function AccountModal({ initialTab, onClose }: { initialTab: Tab; onClose
         {tab === 'friends' && <FriendsTab authed={!!authUser} />}
         {tab === 'profile' && <ProfileTab authed={!!authUser} winRate={winRate} />}
         {tab === 'matches' && <MatchesTab authed={!!authUser} />}
-      </div>
-    </div>,
-    document.body,
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
@@ -132,8 +152,8 @@ function ProfileTab({ authed, winRate }: { authed: boolean; winRate: (e: { wins:
       });
   }, [authed]);
 
-  if (!authed) return <p className="text-sm text-white/50">Profil için giriş yap.</p>;
-  if (!profile) return <p className="text-sm text-white/40">Yükleniyor…</p>;
+  if (!authed) return <p className="text-sm text-cream/50">Profil için giriş yap.</p>;
+  if (!profile) return <p className="text-sm text-cream/40">Yükleniyor…</p>;
 
   return (
     <div className="space-y-4">
@@ -147,7 +167,7 @@ function ProfileTab({ authed, winRate }: { authed: boolean; winRate: (e: { wins:
         <Stat label="En iyi seri" value={profile.bestStreak} />
       </div>
       <div>
-        <label className="mb-1 block text-xs text-white/50">Görünen ad (handle)</label>
+        <label className="mb-1 block text-xs text-cream/50">Görünen ad (handle)</label>
         <div className="flex gap-2">
           <input className="input py-2" value={handle} maxLength={24} onChange={(e) => setHandle(e.target.value)} />
           <button
@@ -171,24 +191,24 @@ function MatchesTab({ authed }: { authed: boolean }) {
   useEffect(() => {
     if (authed) void fetchMyMatches().then(setMatches);
   }, [authed]);
-  if (!authed) return <p className="text-sm text-white/50">Maç geçmişi için giriş yap.</p>;
+  if (!authed) return <p className="text-sm text-cream/50">Maç geçmişi için giriş yap.</p>;
   const wins = matches.filter((m) => m.won).length;
   return (
     <div className="space-y-2">
       {matches.length > 0 && (
-        <p className="text-xs text-white/40">
+        <p className="text-xs text-cream/40">
           Son {matches.length} maç · <span className="text-emerald-400">{wins}G</span>{' '}
           <span className="text-rose-400">{matches.length - wins}M</span>
         </p>
       )}
       <div className="scroll-thin max-h-80 space-y-1 overflow-y-auto">
-        {matches.length === 0 && <p className="text-sm text-white/40">Henüz maç yok.</p>}
+        {matches.length === 0 && <p className="text-sm text-cream/40">Henüz maç yok.</p>}
         {matches.map((m, i) => (
-          <div key={i} className="flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2 text-sm">
+          <div key={i} className="flex items-center gap-3 rounded-lg bg-cream/5 px-3 py-2 text-sm">
             <span className={`shrink-0 font-bold ${m.won ? 'text-emerald-400' : 'text-rose-400'}`}>{m.won ? 'G' : 'M'}</span>
-            <span className="w-10 shrink-0 text-xs text-white/40">{m.gameId === 'dama' ? 'Dama' : m.gameId === 'amiral' ? 'Amiral' : 'Tavla'}</span>
+            <span className="w-10 shrink-0 text-xs text-cream/40">{m.gameId === 'dama' ? 'Dama' : m.gameId === 'amiral' ? 'Amiral' : 'Tavla'}</span>
             <span className="min-w-0 flex-1 truncate">vs {m.opponentName}</span>
-            <span className="shrink-0 tabular-nums text-white/60">{m.myScore}–{m.opponentScore}</span>
+            <span className="shrink-0 tabular-nums text-cream/60">{m.myScore}–{m.opponentScore}</span>
           </div>
         ))}
       </div>
@@ -219,7 +239,7 @@ function FriendsTab({ authed }: { authed: boolean }) {
     if (authed) reload();
   }, [authed, reqCount, friendsVersion]);
 
-  if (!authed) return <p className="text-sm text-white/50">Arkadaş eklemek için giriş yap.</p>;
+  if (!authed) return <p className="text-sm text-cream/50">Arkadaş eklemek için giriş yap.</p>;
 
   // Online friends first, then alphabetical; filter by handle. Keeps a long list
   // usable — the people you can actually invite float to the top.
@@ -250,10 +270,10 @@ function FriendsTab({ authed }: { authed: boolean }) {
   return (
     <div className="space-y-3">
       {requests.length > 0 && (
-        <div className="space-y-1 rounded-xl border border-amber-glow/30 bg-amber-glow/[0.07] p-3">
-          <p className="mb-1 text-xs font-semibold text-amber-glow">🔔 Arkadaşlık istekleri ({requests.length})</p>
+        <div className="space-y-1 rounded-xl border border-accent/30 bg-accent/[0.07] p-3">
+          <p className="mb-1 text-xs font-semibold text-accent">🔔 Arkadaşlık istekleri ({requests.length})</p>
           {requests.map((r) => (
-            <div key={r.uid} className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
+            <div key={r.uid} className="flex items-center gap-2 rounded-lg bg-cream/5 px-3 py-2">
               <Avatar url={r.avatar} name={r.handle} className="h-7 w-7" />
               <span className="min-w-0 flex-1 truncate text-sm font-semibold">{r.handle}</span>
               <button
@@ -262,7 +282,7 @@ function FriendsTab({ authed }: { authed: boolean }) {
               >
                 ✓ Kabul
               </button>
-              <button className="shrink-0 rounded bg-white/10 px-2.5 py-1 text-xs text-white/60 hover:text-rose-300" onClick={() => respond(r.uid, false)}>
+              <button className="shrink-0 rounded bg-cream/10 px-2.5 py-1 text-xs text-cream/60 hover:text-rose-300" onClick={() => respond(r.uid, false)}>
                 Reddet
               </button>
             </div>
@@ -279,11 +299,11 @@ function FriendsTab({ authed }: { authed: boolean }) {
       {err && <p className="text-xs text-rose-400">{err}</p>}
       {sent && <p className="text-xs text-emerald-400">✓ İstek gönderildi — kabul edince arkadaş listende görünecek.</p>}
 
-      <div className="flex items-center gap-2 text-xs text-white/50">
+      <div className="flex items-center gap-2 text-xs text-cream/50">
         Davet oyunu:
-        <button onClick={() => setGame('tavla')} className={`rounded px-2 py-0.5 ${game === 'tavla' ? 'bg-amber-glow text-ink-900' : 'bg-white/5'}`}>Tavla</button>
-        <button onClick={() => setGame('dama')} className={`rounded px-2 py-0.5 ${game === 'dama' ? 'bg-amber-glow text-ink-900' : 'bg-white/5'}`}>Dama</button>
-        <button onClick={() => setGame('amiral')} className={`rounded px-2 py-0.5 ${game === 'amiral' ? 'bg-amber-glow text-ink-900' : 'bg-white/5'}`}>Amiral</button>
+        <button onClick={() => setGame('tavla')} className={`rounded px-2 py-0.5 ${game === 'tavla' ? 'bg-accent text-ink-900' : 'bg-cream/5'}`}>Tavla</button>
+        <button onClick={() => setGame('dama')} className={`rounded px-2 py-0.5 ${game === 'dama' ? 'bg-accent text-ink-900' : 'bg-cream/5'}`}>Dama</button>
+        <button onClick={() => setGame('amiral')} className={`rounded px-2 py-0.5 ${game === 'amiral' ? 'bg-accent text-ink-900' : 'bg-cream/5'}`}>Amiral</button>
       </div>
 
       {friends.length > 8 && (
@@ -295,7 +315,7 @@ function FriendsTab({ authed }: { authed: boolean }) {
         />
       )}
       {friends.length > 0 && (
-        <div className="flex items-center justify-between text-xs text-white/40">
+        <div className="flex items-center justify-between text-xs text-cream/40">
           <span>
             {friends.length} arkadaş · <span className="text-emerald-400">{onlineCount} çevrimiçi</span>
           </span>
@@ -304,17 +324,17 @@ function FriendsTab({ authed }: { authed: boolean }) {
       )}
 
       <div className="scroll-thin max-h-64 space-y-1 overflow-y-auto">
-        {friends.length === 0 && <p className="text-sm text-white/40">Henüz arkadaş yok. Handle ile ekle.</p>}
-        {friends.length > 0 && shown.length === 0 && <p className="text-sm text-white/40">Eşleşen arkadaş yok.</p>}
+        {friends.length === 0 && <p className="text-sm text-cream/40">Henüz arkadaş yok. Handle ile ekle.</p>}
+        {friends.length > 0 && shown.length === 0 && <p className="text-sm text-cream/40">Eşleşen arkadaş yok.</p>}
         {shown.map((f) => (
-          <div key={f.uid} className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
+          <div key={f.uid} className="flex items-center gap-2 rounded-lg bg-cream/5 px-3 py-2">
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.online ? '#34d399' : '#6b7280' }} />
             <Avatar url={f.avatar} name={f.handle} className="h-7 w-7" />
             <span className="min-w-0 flex-1 truncate font-semibold">{f.handle}</span>
-            <button className="shrink-0 rounded bg-amber-glow px-2 py-1 text-xs font-bold text-ink-900 disabled:opacity-40" disabled={!f.online} onClick={() => inviteFriend(f.uid, game)}>
+            <button className="shrink-0 rounded bg-accent px-2 py-1 text-xs font-bold text-ink-900 disabled:opacity-40" disabled={!f.online} onClick={() => inviteFriend(f.uid, game)}>
               Çağır
             </button>
-            <button className="shrink-0 text-white/40 hover:text-rose-400" onClick={async () => { await apiRemoveFriend(f.uid); reload(); }}>
+            <button className="shrink-0 text-cream/40 hover:text-rose-400" onClick={async () => { await apiRemoveFriend(f.uid); reload(); }}>
               ✕
             </button>
           </div>
@@ -336,34 +356,34 @@ function TournamentTab() {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 text-xs text-white/50">
-        <button onClick={() => setGame('tavla')} className={`rounded px-2 py-1 ${game === 'tavla' ? 'bg-amber-glow text-ink-900' : 'bg-white/5'}`}>Tavla</button>
-        <button onClick={() => setGame('dama')} className={`rounded px-2 py-1 ${game === 'dama' ? 'bg-amber-glow text-ink-900' : 'bg-white/5'}`}>Dama</button>
-        <button onClick={() => setGame('amiral')} className={`rounded px-2 py-1 ${game === 'amiral' ? 'bg-amber-glow text-ink-900' : 'bg-white/5'}`}>Amiral</button>
+      <div className="flex items-center gap-2 text-xs text-cream/50">
+        <button onClick={() => setGame('tavla')} className={`rounded px-2 py-1 ${game === 'tavla' ? 'bg-accent text-ink-900' : 'bg-cream/5'}`}>Tavla</button>
+        <button onClick={() => setGame('dama')} className={`rounded px-2 py-1 ${game === 'dama' ? 'bg-accent text-ink-900' : 'bg-cream/5'}`}>Dama</button>
+        <button onClick={() => setGame('amiral')} className={`rounded px-2 py-1 ${game === 'amiral' ? 'bg-accent text-ink-900' : 'bg-cream/5'}`}>Amiral</button>
       </div>
 
       {data && (
         <>
-          <div className="rounded-xl bg-white/5 p-3 text-center">
+          <div className="rounded-xl bg-cream/5 p-3 text-center">
             <p className="font-bold">{data.meta.name}</p>
-            <p className="text-xs text-white/50">Bugün kazandığın her maç +1 puan</p>
+            <p className="text-xs text-cream/50">Bugün kazandığın her maç +1 puan</p>
             {authUser && !data.joined && (
               <button className="btn-primary mt-2 w-full" onClick={async () => { await joinTournament(game); reload(game); }}>
                 Turnuvaya katıl
               </button>
             )}
             {data.joined && <p className="mt-2 text-sm text-emerald-400">✓ Katıldın — maçların sayılıyor</p>}
-            {!authUser && <p className="mt-2 text-xs text-amber-glow/80">Katılmak için giriş yap.</p>}
+            {!authUser && <p className="mt-2 text-xs text-accent/80">Katılmak için giriş yap.</p>}
           </div>
 
           <div className="scroll-thin max-h-60 space-y-1 overflow-y-auto">
-            {data.standings.length === 0 && <p className="text-sm text-white/40">Henüz katılan yok.</p>}
+            {data.standings.length === 0 && <p className="text-sm text-cream/40">Henüz katılan yok.</p>}
             {data.standings.map((s, i) => (
-              <div key={s.uid} className={`flex items-center gap-3 rounded-lg px-3 py-2 ${s.uid === authUser?.uid ? 'bg-amber-glow/15 ring-1 ring-amber-glow/40' : 'bg-white/5'}`}>
-                <span className="w-7 shrink-0 text-center font-bold text-white/50">{MEDALS[i] ?? i + 1}</span>
+              <div key={s.uid} className={`flex items-center gap-3 rounded-lg px-3 py-2 ${s.uid === authUser?.uid ? 'bg-accent/15 ring-1 ring-accent/40' : 'bg-cream/5'}`}>
+                <span className="w-7 shrink-0 text-center font-bold text-cream/50">{MEDALS[i] ?? i + 1}</span>
                 <Avatar url={s.avatar} name={s.handle} />
                 <span className="min-w-0 flex-1 truncate font-semibold">{s.handle}</span>
-                <span className="shrink-0 font-bold text-amber-glow">{s.points} puan</span>
+                <span className="shrink-0 font-bold text-accent">{s.points} puan</span>
               </div>
             ))}
           </div>
@@ -376,7 +396,7 @@ function TournamentTab() {
 function Avatar({ url, name, className = 'h-7 w-7' }: { url: string | null; name: string; className?: string }) {
   if (url) return <img src={url} alt="" referrerPolicy="no-referrer" className={`${className} shrink-0 rounded-full object-cover`} />;
   return (
-    <div className={`${className} grid shrink-0 place-items-center rounded-full bg-white/10 text-xs font-bold text-white/60`}>
+    <div className={`${className} grid shrink-0 place-items-center rounded-full bg-cream/10 text-xs font-bold text-cream/60`}>
       {([...name.trim()][0] ?? '?').toUpperCase()}
     </div>
   );
@@ -394,24 +414,24 @@ function LeaderRow({
   mine: boolean;
 }) {
   return (
-    <div className={`flex items-center gap-3 rounded-lg px-3 py-2 ${mine ? 'bg-amber-glow/15 ring-1 ring-amber-glow/40' : 'bg-white/5'}`}>
-      <span className="w-7 shrink-0 text-center font-bold text-white/50">{rank}</span>
+    <div className={`flex items-center gap-3 rounded-lg px-3 py-2 ${mine ? 'bg-accent/15 ring-1 ring-accent/40' : 'bg-cream/5'}`}>
+      <span className="w-7 shrink-0 text-center font-bold text-cream/50">{rank}</span>
       <Avatar url={entry.avatar} name={entry.handle} />
       <span className="min-w-0 flex-1 truncate font-semibold">{entry.handle}</span>
-      <span className="shrink-0 text-xs tabular-nums text-white/50">{entry.wins}G {entry.losses}M · %{winRate(entry)}</span>
-      <span className="w-12 shrink-0 text-right font-bold text-amber-glow">{entry.rating}</span>
+      <span className="shrink-0 text-xs tabular-nums text-cream/50">{entry.wins}G {entry.losses}M · %{winRate(entry)}</span>
+      <span className="w-12 shrink-0 text-right font-bold text-accent">{entry.rating}</span>
     </div>
   );
 }
 
 function Stat({ label, value, prefix }: { label: string; value: number; prefix?: string }) {
   return (
-    <div className="rounded-xl bg-white/5 py-3">
-      <div className="text-2xl font-black text-amber-glow">
+    <div className="rounded-xl bg-cream/5 py-3">
+      <div className="text-2xl font-black text-accent">
         {prefix}
         {value}
       </div>
-      <div className="text-xs text-white/50">{label}</div>
+      <div className="text-xs text-cream/50">{label}</div>
     </div>
   );
 }

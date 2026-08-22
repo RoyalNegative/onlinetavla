@@ -19,15 +19,15 @@ function Avatar({ name, url, color }: { name: string; url: string | null; color:
 
 function Row({ color, player, count, active, isYou }: { color: 'white' | 'black'; player: PlayerInfo | undefined; count: number; active: boolean; isYou: boolean }) {
   return (
-    <div className={`flex items-center gap-3 rounded-xl px-3 py-2 transition ${active ? 'bg-amber-glow/15 ring-1 ring-amber-glow/50' : 'bg-white/5'}`}>
+    <div className={`flex items-center gap-3 rounded-xl px-3 py-2 transition ${active ? 'bg-accent/15 ring-1 ring-accent/50' : 'bg-cream/5'}`}>
       <Avatar name={player?.name ?? '—'} url={player?.avatar ?? null} color={color} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate font-semibold">{player?.name ?? 'Bekleniyor…'}</span>
-          {isYou && <span className="rounded bg-white/10 px-1.5 text-[10px] font-bold text-white/70">SEN</span>}
+          {isYou && <span className="rounded bg-cream/10 px-1.5 text-[10px] font-bold text-cream/70">SEN</span>}
           <span className="h-2.5 w-2.5 rounded-full" style={{ background: player ? (player.connected ? '#34d399' : '#f87171') : '#6b7280' }} />
         </div>
-        <span className="text-xs text-white/50">{color === 'white' ? 'Beyaz' : 'Siyah'} · {count} taş</span>
+        <span className="text-xs text-cream/50">{color === 'white' ? 'Beyaz' : 'Siyah'} · {count} taş</span>
       </div>
     </div>
   );
@@ -57,7 +57,7 @@ export function DamaPanel({
   return (
     <div className="space-y-4">
       <div className="card p-3">
-        <div className="mb-2 px-1 text-xs text-white/50">Dama · Türk daması</div>
+        <div className="mb-2 px-1 text-xs text-cream/50">Dama · Türk daması</div>
         <div className="space-y-2">
           <Row color="black" player={black} count={view.counts.black} active={turn === 'black'} isYou={youSeat === 1} />
           <Row color="white" player={white} count={view.counts.white} active={turn === 'white'} isYou={youSeat === 0} />
@@ -75,19 +75,19 @@ export function DamaPanel({
             )}
           </div>
         ) : spectator ? (
-          <p className="text-center text-sm text-white/50">İzleyici modundasın 👀</p>
+          <p className="text-center text-sm text-cream/50">İzleyici modundasın 👀</p>
         ) : (
           <>
-            <p className="text-center text-sm text-white/70">{view.yourTurn ? 'Sıra sende — taşını oyna' : 'Rakip oynuyor…'}</p>
+            <p className="text-center text-sm text-cream/70">{view.yourTurn ? 'Sıra sende — taşını oyna' : 'Rakip oynuyor…'}</p>
             <div className="text-center">
               {confirm ? (
                 <div className="flex items-center justify-center gap-2 text-sm">
-                  <span className="text-white/60">Emin misin?</span>
+                  <span className="text-cream/60">Emin misin?</span>
                   <button className="text-rose-400 hover:underline" onClick={onResign}>Evet</button>
-                  <button className="text-white/60 hover:underline" onClick={() => setConfirm(false)}>Vazgeç</button>
+                  <button className="text-cream/60 hover:underline" onClick={() => setConfirm(false)}>Vazgeç</button>
                 </div>
               ) : (
-                <button className="text-xs text-white/40 hover:text-rose-400" onClick={() => setConfirm(true)}>Pes et</button>
+                <button className="text-xs text-cream/40 hover:text-rose-400" onClick={() => setConfirm(true)}>Pes et</button>
               )}
             </div>
           </>

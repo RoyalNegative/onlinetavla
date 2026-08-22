@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import type { GameId } from '@tavla/engine';
-import { AccountModal } from '../components/AccountModal';
-import { Die } from '../components/Die';
+import { ArrowLeft, ArrowRight, Bell, Check, GraduationCap, Plus, Target, Trophy, Users } from 'lucide-react';
+import { AccountModal } from '../components/AccountModalLazy';
+import { GameGlyph } from '../components/GameGlyph';
 import { Header } from '../components/Header';
 import { fetchFriends, fetchTournament, joinTournament, type Friend, type Tournament } from '../lib/api';
+import { cn } from '../lib/cn';
 import { GAME_META } from '../lib/games';
 import { navigate } from '../router';
 import { useStore } from '../store';
@@ -27,16 +29,14 @@ function loadQuick(): QuickStart | null {
 
 const TARGETS = [1, 3, 5, 7];
 
-// The hub's game catalog — adding a game here (plus its GameModule) is all the
-// home screen needs. `kind` splits the picker: head-to-head duels vs party
-// games you gather a crew for.
-const GAMES: { id: GameId; kind: 'duel' | 'party'; icon: string; title: string; sub: string; hero: string; desc: string; how: string }[] = [
+// The hub's game catalog — adding a game here (plus its GameModule and a mark
+// in <GameGlyph>) is all the home screen needs. Title / subtitle / accent live
+// in GAME_META so the room screen shows the same identity. `kind` splits the
+// picker: head-to-head duels vs party games you gather a crew for.
+const GAMES: { id: GameId; kind: 'duel' | 'party'; hero: string; desc: string; how: string }[] = [
   {
     id: 'tavla',
     kind: 'duel',
-    icon: '🎲',
-    title: 'Tavla',
-    sub: 'backgammon',
     hero: 'tavla',
     desc: 'Kahvehane klasiği: zar at, pullarını yürüt, önce toplayan kazanır.',
     how: 'Zarları at, taşlarını rakip yönünün tersine yürüt; önce toplayan kazanır. Mars 2 katı yazar.',
@@ -44,9 +44,6 @@ const GAMES: { id: GameId; kind: 'duel' | 'party'; icon: string; title: string; 
   {
     id: 'dama',
     kind: 'duel',
-    icon: '⛀',
-    title: 'Dama',
-    sub: 'Türk daması',
     hero: 'dama',
     desc: '8x8 tahtada taş yeme oyunu; rakibin tüm taşlarını yiyen kazanır.',
     how: 'Taşlar ileri ve yana gider, yeme zorunludur. Son sıraya ulaşan taş dama olur (her yöne uçar).',
@@ -54,9 +51,6 @@ const GAMES: { id: GameId; kind: 'duel' | 'party'; icon: string; title: string; 
   {
     id: 'amiral',
     kind: 'duel',
-    icon: '🚢',
-    title: 'Amiral Battı',
-    sub: 'deniz savaşı',
     hero: 'amiral battı',
     desc: 'Okul sıralarının kâğıt-kalem oyunu: gemileri sakla, tahmin et, batır.',
     how: 'Filonu gizlice yerleştir, sırayla koordinat söyleyip ateş et. İsabette bir atış daha kazanırsın; rakibin beş gemisini de ilk batıran kazanır.',
@@ -64,9 +58,6 @@ const GAMES: { id: GameId; kind: 'duel' | 'party'; icon: string; title: string; 
   {
     id: 'mangala',
     kind: 'duel',
-    icon: '🪨',
-    title: 'Mangala',
-    sub: 'Türk zekâ oyunu',
     hero: 'mangala',
     desc: 'Asırlık Türk strateji oyunu: kuyulardan taş dağıt, haznende biriktir.',
     how: 'Herkesin 6 kuyusu ve 1 haznesi var; kuyundaki taşları alıp sırayla dağıtırsın. Son taş haznene düşerse bir hamle daha oynarsın, rakip kuyusundaki taşları çift sayıya tamamlarsan hepsini kaparsın. Oyun sonunda haznesinde çok taş olan kazanır.',
@@ -74,9 +65,6 @@ const GAMES: { id: GameId; kind: 'duel' | 'party'; icon: string; title: string; 
   {
     id: 'dortlu',
     kind: 'duel',
-    icon: '🔴',
-    title: "4'ü Bağla",
-    sub: 'dörtlü sıra',
     hero: "4'ü bağla",
     desc: 'Connect Four: pulları sütunlara bırak, yan yana 4 yapan kazanır.',
     how: 'Sırayla bir sütun seçersin, pulun en alttaki boş göze düşer. Yatay, dikey veya çapraz fark etmez — kendi renginden 4 pulu ilk hizalayan kazanır. Basit görünür, iki dakikada öğrenilir.',
@@ -84,9 +72,6 @@ const GAMES: { id: GameId; kind: 'duel' | 'party'; icon: string; title: string; 
   {
     id: 'satranc',
     kind: 'duel',
-    icon: '♟️',
-    title: 'Satranç',
-    sub: 'chess',
     hero: 'satranç',
     desc: 'Oyunların kralı: şah-mat edene kadar taşlarını kur, rakibini köşeye sıkıştır.',
     how: 'Beyaz başlar; her taş kendi kuralınca gider. Rok, geçerken alma ve piyon terfisi dâhil tüm kurallar geçerli. Rakip kralı kaçamayacak şekilde tehdit edilince (şah-mat) oyun biter; hamlesi kalmayan ama şah da olmayan taraf pata düşer (berabere).',
@@ -94,14 +79,14 @@ const GAMES: { id: GameId; kind: 'duel' | 'party'; icon: string; title: string; 
   {
     id: 'secrethitler',
     kind: 'party',
-    icon: '🕵️',
-    title: 'Secret Hitler',
-    sub: '5-10 kişi · ekipçe',
     hero: 'Secret Hitler',
     desc: 'Sosyal blöf oyunu: liberaller Hitler’i arıyor, faşistler gizlice sızıyor.',
     how: 'Oda kur, linki ekibe gönder (5-10 kişi). Her tur bir başkan şansölye aday gösterir, herkes JA/NEIN oylar; seçilen hükûmet gizli politika kartı koyar. Liberaller 5 liberal politikayla ya da Hitler’i infazla kazanır; faşistler 6 faşist politikayla ya da Hitler’i şansölye seçtirerek.',
   },
 ];
+
+const DUELS = GAMES.filter((g) => g.kind === 'duel');
+const PARTY = GAMES.filter((g) => g.kind === 'party');
 
 export function Home() {
   const nickname = useStore((s) => s.nickname);
@@ -178,281 +163,355 @@ export function Home() {
     if (code) navigate(`/r/${code}`);
   }
 
+  const heroTint = picked ? GAME_META[game].tint : '#e0603a';
+
   return (
-    <div className="mx-auto flex min-h-full max-w-3xl flex-col lg:max-w-6xl">
+    <div className="flex min-h-full flex-col">
       <Header />
 
-      <main className="flex-1 px-4 pb-12 sm:px-6">
-        {/* ---- Hero: compact, so the actual product (the picker) is above the fold ---- */}
-        <section className="pb-4 pt-4 text-center sm:pt-6">
-          <div className="mb-2 flex items-end justify-center gap-2" aria-hidden>
-            <div className="-rotate-12"><Die value={5} size={30} /></div>
-            <div className="translate-y-0.5 rotate-6"><Die value={3} size={24} /></div>
+      <main className="relative mx-auto w-full max-w-6xl flex-1 px-5 pb-16 sm:px-8">
+        {/* A single slow-drifting wash in the selected game's accent. It's the
+            only thing behind the type, and it re-tints as you pick — the page
+            reacts to your choice without any layout moving. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 -top-24 h-[440px] animate-drift blur-[90px] transition-colors duration-700"
+          style={{
+            background: `radial-gradient(46% 52% at 22% 40%, ${heroTint}2e, transparent 70%)`,
+          }}
+        />
+
+        {/* ---- Hero ---- */}
+        <section className="relative pb-7 pt-8 sm:pb-10 sm:pt-12">
+          <div className="mb-5 flex items-center gap-3">
+            <span className="eyebrow">Ücretsiz · Üyeliksiz · Reklamsız</span>
+            <span className="rule" />
           </div>
-          <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
-            Arkadaşınla <span className="text-amber-glow">{picked ? meta.hero : 'oyna'}</span>
+
+          <h1 className="font-display text-display-sm text-cream sm:text-display lg:text-display-lg">
+            Arkadaşınla
+            <br />
+            <span
+              key={picked ? game : 'default'}
+              className="inline-block animate-swap-in text-accent"
+              style={picked ? { color: GAME_META[game].tint } : undefined}
+            >
+              {picked ? meta.hero : 'oyna'}.
+            </span>
           </h1>
-          <p className="mx-auto mt-1.5 max-w-md text-sm text-white/60">
-            Oda kur, linki paylaş, saniyeler içinde oyna — ücretsiz, üyeliksiz.
+
+          <p className="mt-5 max-w-[30ch] text-[15px] leading-relaxed text-cream/55">
+            Oda kur, linki paylaş, saniyeler içinde başla. Kurulum yok, kayıt yok.
           </p>
         </section>
 
-        {/* On wide screens friends + the daily tournament move to a right rail;
-            the main column keeps the start flow. Phones stack as before. */}
-        <div className={accountsEnabled ? 'grid gap-x-6 lg:grid-cols-[minmax(0,1fr)_330px] lg:items-start' : undefined}>
-          {accountsEnabled && authUser && (
-            <div className="mt-6 lg:col-start-2 lg:row-start-1 lg:mt-0">
-              <FriendsStrip game={game} />
-            </div>
+        <div
+          className={cn(
+            'relative grid gap-x-12 gap-y-8',
+            accountsEnabled && 'lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start',
           )}
-
-          <div className="lg:col-start-1 lg:row-start-1 lg:row-span-3">
-        {/* ---- Returning player: one tap back into your usual game ---- */}
-        {!picked && quick && hasName && GAME_META[quick.gameId] && (
-          <div className="card mb-3 flex flex-col gap-3 border-amber-glow/25 p-4 sm:flex-row sm:items-center">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <span
-                className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-2xl"
-                style={{ background: `${GAME_META[quick.gameId].tint}26` }}
+        >
+          <div className="min-w-0 lg:col-start-1 lg:row-start-1 lg:row-span-3">
+            {/* ---- Returning player: one tap back into your usual game ---- */}
+            {!picked && quick && hasName && GAME_META[quick.gameId] && (
+              <div
+                className="mb-8 flex animate-rise-in flex-col gap-4 border-l-2 py-1 pl-4 sm:flex-row sm:items-center sm:justify-between"
+                style={{ borderColor: GAME_META[quick.gameId].tint }}
               >
-                {GAME_META[quick.gameId].icon}
-              </span>
-              <div className="min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-amber-glow/80">Kaldığın yerden</p>
-                <p className="truncate text-sm font-semibold">
-                  {GAME_META[quick.gameId].title}
-                  {quick.gameId === 'tavla' && (
-                    <span className="font-normal text-white/45"> · {quick.mode === 'backgammon' ? 'çift zarlı' : 'klasik'} · {quick.targetPoints} sayıya</span>
-                  )}
-                </p>
-              </div>
-            </div>
-            <div className="flex shrink-0 gap-2">
-              <button className="btn-primary flex-1 px-4 py-2.5 text-sm sm:flex-none" onClick={quickCreate} disabled={busy}>
-                {busy ? 'Oluşturuluyor…' : '▸ Hemen oda kur'}
-              </button>
-              {quick.gameId !== 'secrethitler' && (
-                <button className="btn-ghost px-4 py-2.5 text-sm" onClick={() => findMatch(quick.gameId)} disabled={matchmaking}>
-                  🎯 Rakip bul
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ---- The one card that starts a game: pick → set up ---- */}
-        {!picked ? (
-          <div key="pick" className="card animate-fade-up space-y-4 p-5 sm:p-6">
-            <div className="flex items-baseline justify-between">
-              <span className="text-sm font-semibold text-white/70">Oyununu seç</span>
-              <span className="text-[11px] text-white/35">1/2</span>
-            </div>
-
-            <div>
-              <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-white/35">⚔️ İki kişilik</p>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {GAMES.filter((g) => g.kind === 'duel').map((g) => (
-                  <GamePick key={g.id} g={g} onPick={() => { setGame(g.id); setPicked(true); }} />
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-white/35">🎉 Toplu oyun — ekibini topla</p>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {GAMES.filter((g) => g.kind === 'party').map((g) => (
-                  <GamePick key={g.id} g={g} onPick={() => { setGame(g.id); setPicked(true); }} />
-                ))}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div key="setup" className="card animate-fade-up space-y-5 p-5 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span
-                  className="grid h-11 w-11 place-items-center rounded-xl text-2xl leading-none"
-                  style={{ background: `${GAME_META[meta.id].tint}26` }}
-                >
-                  {meta.icon}
-                </span>
-                <div>
-                  <div className="font-bold leading-tight">{meta.title}</div>
-                  <div className="text-[11px] text-white/40">{meta.sub}</div>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-[11px] text-white/35">2/2</span>
-                <button className="btn-ghost px-3 py-1.5 text-xs" onClick={() => setPicked(false)}>
-                  ← Oyun değiştir
-                </button>
-              </div>
-            </div>
-
-            {game === 'tavla' ? (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <span className="mb-1.5 block text-sm font-semibold text-white/70">Kurallar</span>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Toggle active={mode === 'classic'} onClick={() => setMode('classic')} title="Klasik" sub="çift zar yok" />
-                    <Toggle active={mode === 'backgammon'} onClick={() => setMode('backgammon')} title="Çift zarlı" sub="doubling cube" />
+                <div className="flex min-w-0 items-center gap-3.5">
+                  <GameGlyph id={quick.gameId} size={28} className="shrink-0 text-cream/70" />
+                  <div className="min-w-0">
+                    <p className="eyebrow mb-1">Kaldığın yerden</p>
+                    <p className="truncate text-[15px] font-semibold text-cream">
+                      {GAME_META[quick.gameId].title}
+                      {quick.gameId === 'tavla' && (
+                        <span className="font-normal text-cream/40">
+                          {' · '}
+                          {quick.mode === 'backgammon' ? 'çift zarlı' : 'klasik'} · {quick.targetPoints} sayıya
+                        </span>
+                      )}
+                    </p>
                   </div>
                 </div>
-                <div>
-                  <span className="mb-1.5 block text-sm font-semibold text-white/70">Kaç sayıya? (raund)</span>
-                  <div className="grid grid-cols-4 gap-2">
-                    {TARGETS.map((t) => (
-                      <Toggle key={t} active={target === t} onClick={() => setTarget(t)} title={`${t}`} sub={t === 1 ? 'tek oyun' : 'sayıya'} />
+                <div className="flex shrink-0 gap-2">
+                  <button className="btn-primary" onClick={quickCreate} disabled={busy}>
+                    {busy ? 'Oluşturuluyor…' : 'Hemen oda kur'}
+                    {!busy && <ArrowRight size={15} />}
+                  </button>
+                  {quick.gameId !== 'secrethitler' && (
+                    <button className="btn-ghost" onClick={() => findMatch(quick.gameId)} disabled={matchmaking}>
+                      <Target size={15} /> Rakip bul
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* `key` forces a remount when the step changes, which replays the
+                entrance animation — the same read as a crossfade, no runtime. */}
+            {!picked ? (
+                <div key="pick" className="animate-rise-in">
+                  <SectionRule label="İki kişilik" meta={`${DUELS.length} oyun`} />
+                  <div className="grid grid-cols-1 border-t border-cream/[0.07] sm:grid-cols-2 sm:gap-x-10">
+                    {DUELS.map((g, i) => (
+                      <GamePick key={g.id} g={g} index={i} onPick={() => { setGame(g.id); setPicked(true); }} />
+                    ))}
+                  </div>
+
+                  <SectionRule label="Toplu oyun" meta="ekibini topla" className="mt-12" />
+                  <div className="grid grid-cols-1 border-t border-cream/[0.07] sm:grid-cols-2 sm:gap-x-10">
+                    {PARTY.map((g, i) => (
+                      <GamePick key={g.id} g={g} index={i} onPick={() => { setGame(g.id); setPicked(true); }} />
                     ))}
                   </div>
                 </div>
-              </div>
-            ) : game === 'amiral' ? (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <span className="mb-1.5 block text-sm font-semibold text-white/70">Zorluk</span>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Toggle active={amiralKolay} onClick={() => setAmiralKolay(true)} title="Kolay" sub="batan geminin çevresi açılır" />
-                    <Toggle active={!amiralKolay} onClick={() => setAmiralKolay(false)} title="Zor" sub="gemiler bitişik olabilir" />
+              ) : (
+                <div key="setup" className="max-w-2xl animate-rise-in space-y-8">
+                  {/* Game header — the mark is big here; it's the confirmation
+                      that you picked the right thing. */}
+                  <div className="flex items-center justify-between gap-4 border-b border-cream/[0.07] pb-6">
+                    <div className="flex min-w-0 items-center gap-4">
+                      <span
+                        className="grid h-14 w-14 shrink-0 place-items-center rounded-xl border text-cream"
+                        style={{
+                          borderColor: `${GAME_META[game].tint}40`,
+                          background: `${GAME_META[game].tint}14`,
+                        }}
+                      >
+                        <GameGlyph id={game} size={30} />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="font-display text-[26px] font-semibold leading-none tracking-[-0.02em] text-cream">
+                          {GAME_META[game].title}
+                        </div>
+                        <div className="mt-1.5 text-[13px] text-cream/40">{GAME_META[game].sub}</div>
+                      </div>
+                    </div>
+                    <button className="btn-quiet shrink-0" onClick={() => setPicked(false)}>
+                      <ArrowLeft size={15} /> <span className="hidden sm:inline">Oyun değiştir</span>
+                    </button>
                   </div>
-                </div>
-                <div>
-                  <span className="mb-1.5 block text-sm font-semibold text-white/70">Nasıl oynanır?</span>
-                  <p className="rounded-xl bg-white/5 px-3 py-2.5 text-xs leading-relaxed text-white/50">{meta.how}</p>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <span className="mb-1.5 block text-sm font-semibold text-white/70">Nasıl oynanır?</span>
-                <p className="rounded-xl bg-white/5 px-3 py-2.5 text-xs leading-relaxed text-white/50">{meta.how}</p>
-              </div>
-            )}
 
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-white/70">Takma adın</label>
-              <input
-                ref={nameRef}
-                className={`input transition-shadow ${nameFlash ? 'ring-2 ring-rose-400/80' : ''}`}
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                placeholder="ör. Kaan"
-                maxLength={20}
-              />
+                  {/* Rules read as a pull-quote rather than a grey info box. */}
+                  <div className="border-l border-cream/15 pl-5">
+                    <p className="eyebrow mb-2">Nasıl oynanır</p>
+                    <p className="max-w-xl text-[14px] leading-relaxed text-cream/55">{meta.how}</p>
+                  </div>
+
+                  {game === 'tavla' && (
+                    <div className="grid gap-6 sm:grid-cols-2">
+                      <Field label="Kurallar">
+                        <div className="grid grid-cols-2 gap-2">
+                          <Choice active={mode === 'classic'} onClick={() => setMode('classic')} title="Klasik" sub="çift zar yok" />
+                          <Choice active={mode === 'backgammon'} onClick={() => setMode('backgammon')} title="Çift zarlı" sub="doubling cube" />
+                        </div>
+                      </Field>
+                      <Field label="Kaç sayıya oynanacak?">
+                        <div className="grid grid-cols-4 gap-2">
+                          {TARGETS.map((t) => (
+                            <Choice key={t} active={target === t} onClick={() => setTarget(t)} title={`${t}`} sub={t === 1 ? 'tek oyun' : 'sayı'} />
+                          ))}
+                        </div>
+                      </Field>
+                    </div>
+                  )}
+
+                  {game === 'amiral' && (
+                    <Field label="Zorluk">
+                      <div className="grid grid-cols-2 gap-2">
+                        <Choice active={amiralKolay} onClick={() => setAmiralKolay(true)} title="Kolay" sub="batanın çevresi açılır" />
+                        <Choice active={!amiralKolay} onClick={() => setAmiralKolay(false)} title="Zor" sub="gemiler bitişik olabilir" />
+                      </div>
+                    </Field>
+                  )}
+
+                  <Field label="Takma adın">
+                    <input
+                      ref={nameRef}
+                      className={cn('input max-w-md', nameFlash && 'border-danger/80 ring-2 ring-danger/25')}
+                      value={nickname}
+                      onChange={(e) => setNickname(e.target.value)}
+                      placeholder="ör. Kaan"
+                      maxLength={20}
+                    />
+                    {!hasName && (
+                      <p className="mt-2 text-[13px] text-cream/35">Bir takma ad yeter — üyelik gerekmez.</p>
+                    )}
+                  </Field>
+
+                  {matchmaking ? (
+                    <div className="flex max-w-md items-center justify-between gap-4 rounded-xl border border-accent/25 bg-accent/[0.06] px-5 py-4">
+                      <p className="flex items-center gap-2.5 text-sm font-semibold text-accent">
+                        <span className="relative flex h-2 w-2">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+                        </span>
+                        Rakip aranıyor…
+                      </p>
+                      <button className="btn-quiet" onClick={cancelMatch}>
+                        İptal
+                      </button>
+                    </div>
+                  ) : game === 'secrethitler' ? (
+                    // Lobby game: no 1v1 matchmaking — you gather your own crew.
+                    <button className="btn-primary w-full max-w-md py-3.5" onClick={create} disabled={busy}>
+                      {busy ? 'Oluşturuluyor…' : 'Lobi kur, ekibi topla (5-10 kişi)'}
+                      {!busy && <ArrowRight size={16} />}
+                    </button>
+                  ) : (
+                    <div className="flex max-w-md flex-col gap-2.5 sm:flex-row">
+                      <button className="btn-primary flex-1 py-3.5" onClick={create} disabled={busy}>
+                        {busy ? 'Oluşturuluyor…' : 'Oda kur ve başla'}
+                        {!busy && <ArrowRight size={16} />}
+                      </button>
+                      <button className="btn-ghost py-3.5" onClick={find}>
+                        <Target size={15} /> Rakip bul
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+            {/* ---- Secondary: got an invite? ---- */}
+            <div className="mt-12 border-t border-cream/[0.07] pt-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <p className="shrink-0 text-[13px] text-cream/40 sm:w-44">Davet linkin mi var?</p>
+                <input
+                  className="input py-2.5"
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value)}
+                  placeholder="oda kodu veya link yapıştır"
+                  onKeyDown={(e) => e.key === 'Enter' && join()}
+                />
+                <button className="btn-ghost shrink-0 px-6 py-2.5" onClick={join} disabled={!joinCode.trim()}>
+                  Katıl
+                </button>
+              </div>
             </div>
 
-            {matchmaking ? (
-              <div className="rounded-xl bg-white/5 p-4 text-center">
-                <p className="animate-pulse text-sm font-semibold text-amber-glow">🎯 Rakip aranıyor…</p>
-                <button className="btn-ghost mt-3 w-full" onClick={cancelMatch}>
-                  İptal
-                </button>
-              </div>
-            ) : game === 'secrethitler' ? (
-              // Lobby game: no 1v1 matchmaking — you gather your own crew.
-              <button className="btn-primary w-full py-3" onClick={create} disabled={busy}>
-                {busy ? 'Oluşturuluyor…' : '▸ Lobi kur, ekibi topla (5-10 kişi)'}
-              </button>
-            ) : (
-              <div className="grid gap-2 sm:grid-cols-2">
-                <button className="btn-primary py-3" onClick={create} disabled={busy}>
-                  {busy ? 'Oluşturuluyor…' : '▸ Oda kur ve başla'}
-                </button>
-                <button className="btn-ghost py-3" onClick={find}>
-                  🎯 Rakip bul
-                </button>
-              </div>
-            )}
-            {!hasName && <p className="text-center text-xs text-white/40">Başlamak için bir takma ad yeter — üyelik gerekmez.</p>}
-          </div>
-        )}
-
-        {/* ---- Secondary: got an invite? ---- */}
-        <div className="card mt-3 flex flex-col gap-2 p-4 sm:flex-row sm:items-center">
-          <p className="shrink-0 text-sm font-semibold text-white/70 sm:w-40">Davet linkin mi var?</p>
-          <input
-            className="input py-2.5"
-            value={joinCode}
-            onChange={(e) => setJoinCode(e.target.value)}
-            placeholder="oda kodu veya link yapıştır"
-            onKeyDown={(e) => e.key === 'Enter' && join()}
-          />
-          <button className="btn-ghost shrink-0 px-5 py-2.5" onClick={join} disabled={!joinCode.trim()}>
-            Katıl
-          </button>
-        </div>
-
-            <div className="mt-6 text-center">
-              <button className="btn-ghost mx-auto text-sm" onClick={() => navigate('/pratik')}>
-                🎓 Yeni misin? Bota karşı pratik yap & öğren
+            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
+              <button
+                className="group inline-flex items-center gap-2 text-[13px] text-cream/45 transition-colors hover:text-cream"
+                onClick={() => navigate('/pratik')}
+              >
+                <GraduationCap size={15} />
+                Yeni misin? Bota karşı pratik yap
+                <ArrowRight size={13} className="transition-transform duration-200 group-hover:translate-x-0.5" />
               </button>
               {accountsEnabled && !authUser && (
-                <p className="mt-3 text-xs text-white/40">
-                  İstersen <b className="text-amber-glow/80">giriş yap</b> — Elo puanın, istatistiklerin ve sıralaman kaydedilsin.
+                <p className="text-[13px] text-cream/30">
+                  Giriş yaparsan Elo puanın ve istatistiklerin kaydedilir.
                 </p>
               )}
             </div>
           </div>
 
+          {/* Right rail on wide screens; stacks under the flow on phones. */}
+          {accountsEnabled && authUser && (
+            <div className="lg:col-start-2 lg:row-start-1">
+              <FriendsStrip game={game} />
+            </div>
+          )}
           {accountsEnabled && (
-            <div className="mt-3 lg:col-start-2 lg:row-start-2 lg:mt-4">
+            <div className="lg:col-start-2 lg:row-start-2">
               <TournamentCard game={game} authed={!!authUser} />
             </div>
           )}
         </div>
 
-        <footer className="mt-12 border-t border-white/10 pt-5 text-center text-xs leading-relaxed text-white/35">
-          <ul className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5">
-            <li className="whitespace-nowrap">🎲 Zarları sunucu atar — hile yok</li>
-            <li className="whitespace-nowrap">💬 Oyun içi sohbet & emoji</li>
-            <li className="whitespace-nowrap">🔁 Tek tıkla rövanş</li>
+        <footer className="mt-16 border-t border-cream/[0.07] pt-8 text-[13px] text-cream/35">
+          <ul className="flex flex-wrap gap-x-8 gap-y-2">
+            <li>Zarları sunucu atar — hile yok</li>
+            <li>Oyun içi sohbet &amp; emoji</li>
+            <li>Tek tıkla rövanş</li>
           </ul>
-          <nav className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-1">
-            <a href="/nasil-oynanir" className="whitespace-nowrap hover:text-amber-glow">
+          <nav className="mt-5 flex flex-wrap gap-x-6 gap-y-2">
+            <a href="/nasil-oynanir" className="transition-colors hover:text-accent">
               Tavla nasıl oynanır?
             </a>
-            <a href="/pratik" className="whitespace-nowrap hover:text-amber-glow">
+            <a href="/pratik" className="transition-colors hover:text-accent">
               Bota karşı pratik
             </a>
           </nav>
-          <p className="mt-3">Ücretsiz, üyeliksiz online tavla, dama, amiral battı, mangala, 4'ü bağla ve satranç — OnlineTavla</p>
+          <p className="mt-6 max-w-2xl leading-relaxed text-cream/20">
+            Ücretsiz, üyeliksiz online tavla, dama, amiral battı, mangala, 4'ü bağla ve satranç — OnlineTavla
+          </p>
         </footer>
       </main>
     </div>
   );
 }
 
-function GamePick({ g, onPick }: { g: (typeof GAMES)[number]; onPick: () => void }) {
-  const tint = GAME_META[g.id].tint;
+/** The small-caps label + hairline that opens a section. */
+function SectionRule({ label, meta, className }: { label: string; meta?: string; className?: string }) {
+  return (
+    <div className={cn('mb-1 flex items-center gap-4', className)}>
+      <span className="eyebrow">{label}</span>
+      <span className="rule" />
+      {meta && <span className="text-[11px] text-cream/25">{meta}</span>}
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="eyebrow mb-2.5">{label}</p>
+      {children}
+    </div>
+  );
+}
+
+// A catalog row, not a filled tile: hairline-separated, with the game's accent
+// arriving only on hover. Seven equal-weight boxes is what made the old picker
+// read as a grid of buttons rather than a list of games.
+function GamePick({ g, index, onPick }: { g: (typeof GAMES)[number]; index: number; onPick: () => void }) {
+  const m = GAME_META[g.id];
   return (
     <button
       onClick={onPick}
-      style={{ ['--tint' as string]: tint }}
-      className="group flex items-center gap-3 rounded-xl bg-white/5 px-3.5 py-3 text-left ring-1 ring-transparent transition duration-150 hover:-translate-y-0.5 hover:bg-white/[0.08] hover:ring-[color:var(--tint)] active:translate-y-0"
+      style={{ ['--tint' as string]: m.tint, animationDelay: `${index * 35}ms` }}
+      className="group relative flex animate-rise-in items-start gap-4 border-b border-cream/[0.07] py-5 text-left transition-colors duration-200 hover:border-cream/20"
     >
-      <div
-        className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-2xl leading-none transition duration-150 group-hover:scale-110"
-        style={{ background: `${tint}26` }}
-      >
-        {g.icon}
-      </div>
-      <div className="min-w-0">
-        <div className="font-bold leading-tight">
-          {g.title} <span className="text-[11px] font-normal text-white/40">· {g.sub}</span>
-        </div>
-        <div className="mt-1 text-xs leading-snug text-white/45">{g.desc}</div>
-      </div>
+      {/* Hover wash, clipped to the row — gives feedback without a border box. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-[-14px] inset-y-0 rounded-lg bg-[color:var(--tint)] opacity-0 transition-opacity duration-200 group-hover:opacity-[0.055]"
+      />
+      <span className="relative mt-0.5 shrink-0 text-cream/70 transition-all duration-200 group-hover:scale-105 group-hover:text-[color:var(--tint)]">
+        <GameGlyph id={g.id} size={34} />
+      </span>
+      <span className="relative min-w-0 flex-1">
+        <span className="flex items-baseline gap-2">
+          <span className="font-display text-[19px] font-semibold leading-tight tracking-[-0.015em] text-cream">
+            {m.title}
+          </span>
+          <span className="truncate text-[12px] text-cream/30">{m.sub}</span>
+        </span>
+        <span className="mt-1.5 block text-[13px] leading-relaxed text-cream/50">{g.desc}</span>
+      </span>
+      <ArrowRight
+        size={16}
+        className="relative mt-1.5 shrink-0 -translate-x-1 text-cream/0 transition-all duration-200 group-hover:translate-x-0 group-hover:text-[color:var(--tint)]"
+      />
     </button>
   );
 }
 
-function Toggle({ active, onClick, title, sub }: { active: boolean; onClick: () => void; title: string; sub: string }) {
+function Choice({ active, onClick, title, sub }: { active: boolean; onClick: () => void; title: string; sub: string }) {
   return (
     <button
       onClick={onClick}
-      className={`rounded-xl px-2 py-2.5 text-center transition ${active ? 'bg-amber-glow text-ink-900' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}
+      aria-pressed={active}
+      className={cn(
+        'rounded-[10px] border px-3 py-2.5 text-left transition-all duration-200 ease-out',
+        active
+          ? 'border-accent/70 bg-accent/[0.12] text-cream'
+          : 'border-cream/12 bg-cream/[0.02] text-cream/70 hover:border-cream/25 hover:bg-cream/[0.05]',
+      )}
     >
-      <div className="font-bold leading-tight">{title}</div>
-      <div className={`text-[11px] ${active ? 'text-ink-900/70' : 'text-white/40'}`}>{sub}</div>
+      <div className={cn('text-[14px] font-semibold leading-tight', active && 'text-accent')}>{title}</div>
+      <div className={cn('mt-0.5 text-[11px] leading-tight', active ? 'text-accent/55' : 'text-cream/30')}>{sub}</div>
     </button>
   );
 }
@@ -483,30 +542,47 @@ function FriendsStrip({ game }: { game: GameId }) {
   const online = friends.filter((f) => f.online);
 
   return (
-    <div className="card p-4">
-      <div className="mb-2 flex items-center justify-between">
-        <p className="text-sm font-semibold">👥 Arkadaşların {online.length > 0 && <span className="text-emerald-400">· {online.length} çevrimiçi</span>}</p>
-        <button className="text-xs text-amber-glow hover:underline" onClick={() => setModal(true)}>
+    <div>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <span className="eyebrow flex items-center gap-2">
+          <Users size={13} /> Arkadaşların
+        </span>
+        <button
+          className="text-[12px] text-cream/40 transition-colors hover:text-accent"
+          onClick={() => setModal(true)}
+        >
           {reqCount > 0 ? (
-            <span className="rounded-full bg-rose-500/20 px-2 py-0.5 font-bold text-rose-300">🔔 {reqCount} istek</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-2.5 py-1 font-semibold text-accent">
+              <Bell size={11} /> {reqCount} istek
+            </span>
           ) : friends.length === 0 ? (
-            '+ Arkadaş ekle'
+            <span className="inline-flex items-center gap-1">
+              <Plus size={12} /> Ekle
+            </span>
           ) : (
-            'Tümü / ekle'
+            'Tümü'
           )}
         </button>
       </div>
+
       {friends.length === 0 ? (
-        <p className="text-xs text-white/40">Arkadaş ekle; çevrimiçi olunca buradan tek dokunuşla oyuna çağır.</p>
+        <p className="border-t border-cream/[0.07] pt-3 text-[13px] leading-relaxed text-cream/35">
+          Arkadaş ekle; çevrimiçi olduklarında buradan tek dokunuşla oyuna çağır.
+        </p>
       ) : (
-        <div className="scroll-thin flex gap-2 overflow-x-auto pb-1">
-          {[...online, ...friends.filter((f) => !f.online)].map((f) => (
-            <div key={f.uid} className="flex shrink-0 items-center gap-2 rounded-xl bg-white/5 px-3 py-2">
-              <span className="h-2.5 w-2.5 rounded-full" style={{ background: f.online ? '#34d399' : '#6b7280' }} />
-              <span className="max-w-[110px] truncate text-sm font-semibold">{f.handle}</span>
+        <div className="space-y-px border-t border-cream/[0.07]">
+          {[...online, ...friends.filter((f) => !f.online)].slice(0, 6).map((f) => (
+            <div key={f.uid} className="flex items-center gap-2.5 border-b border-cream/[0.05] py-2.5">
+              <span
+                className="h-1.5 w-1.5 shrink-0 rounded-full"
+                style={{ background: f.online ? '#5bc08a' : '#4a4a4e' }}
+              />
+              <span className={cn('min-w-0 flex-1 truncate text-[13px]', f.online ? 'text-cream/85' : 'text-cream/35')}>
+                {f.handle}
+              </span>
               {f.online && (
                 <button
-                  className="rounded-lg bg-amber-glow px-2.5 py-1.5 text-xs font-bold text-ink-900 disabled:opacity-40"
+                  className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-accent transition-colors hover:bg-accent/10 disabled:opacity-40"
                   disabled={inviting === f.uid}
                   onClick={async () => {
                     setInviting(f.uid);
@@ -526,8 +602,7 @@ function FriendsStrip({ game }: { game: GameId }) {
   );
 }
 
-// Daily tournament for the selected game, with its live top-5 — a proper card
-// so the wide-screen right rail has something worth looking at.
+// Daily tournament for the selected game, with its live top-5.
 function TournamentCard({ game, authed }: { game: GameId; authed: boolean }) {
   const [t, setT] = useState<Tournament | null>(null);
   useEffect(() => {
@@ -536,39 +611,51 @@ function TournamentCard({ game, authed }: { game: GameId; authed: boolean }) {
   if (!t) return null;
   const top = t.standings.slice(0, 5);
   return (
-    <div className="rounded-2xl border border-amber-glow/25 bg-amber-glow/[0.07] p-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="min-w-0 truncate text-sm font-semibold text-amber-glow/90">🎪 {t.meta.name}</p>
+    <div>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <span className="eyebrow flex items-center gap-2">
+          <Trophy size={13} /> Günün turnuvası
+        </span>
         {t.joined ? (
-          <span className="shrink-0 text-xs font-semibold text-emerald-400">✓ Katıldın</span>
+          <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-ok">
+            <Check size={12} /> Katıldın
+          </span>
         ) : authed ? (
           <button
-            className="btn-primary shrink-0 px-3 py-1.5 text-xs"
+            className="text-[12px] font-semibold text-accent transition-colors hover:text-accent-soft"
             onClick={async () => {
               await joinTournament(game);
               void fetchTournament(game).then(setT);
             }}
           >
-            Katıl
+            Katıl →
           </button>
         ) : (
-          <span className="shrink-0 text-xs text-white/50">Giriş yap</span>
+          <span className="text-[12px] text-cream/30">Giriş yap</span>
         )}
       </div>
-      <p className="mt-1 text-xs text-white/50">Bugün kazandığın her maç +1 puan · {t.standings.length} katılımcı</p>
 
-      <div className="mt-3 space-y-1">
-        {top.length === 0 ? (
-          <p className="text-xs text-white/40">Henüz katılan yok — günün ilk şampiyonu sen ol! 🏁</p>
-        ) : (
-          top.map((s, i) => (
-            <div key={s.uid} className="flex items-center gap-2 rounded-lg bg-white/5 px-2.5 py-1.5 text-sm">
-              <span className="w-5 text-center text-xs font-bold text-white/40">{i + 1}</span>
-              <span className="min-w-0 flex-1 truncate font-semibold">{s.handle}</span>
-              <span className="shrink-0 text-xs font-bold text-amber-glow">{s.points} puan</span>
-            </div>
-          ))
-        )}
+      <div className="border-t border-cream/[0.07] pt-3">
+        <p className="truncate text-[14px] font-semibold text-cream/85">{t.meta.name}</p>
+        <p className="mt-1 text-[12px] leading-relaxed text-cream/35">
+          Kazandığın her maç +1 puan · {t.standings.length} katılımcı
+        </p>
+
+        <div className="mt-3.5 space-y-px">
+          {top.length === 0 ? (
+            <p className="text-[13px] text-cream/30">Henüz katılan yok — günün ilk şampiyonu sen ol.</p>
+          ) : (
+            top.map((s, i) => (
+              <div key={s.uid} className="flex items-center gap-3 border-b border-cream/[0.05] py-2 text-[13px]">
+                <span className={cn('w-4 tabular-nums', i === 0 ? 'font-bold text-accent' : 'text-cream/25')}>
+                  {i + 1}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-cream/80">{s.handle}</span>
+                <span className="shrink-0 tabular-nums text-cream/40">{s.points}</span>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

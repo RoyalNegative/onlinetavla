@@ -149,7 +149,7 @@ export function PeerCursors({
 }
 
 function Cursor({ x, y, name, seat }: { x: number; y: number; name: string; seat: number | null }) {
-  const color = seat === 1 ? '#f5b14c' : '#38bdf8';
+  const color = seat === 1 ? '#f2894f' : '#38bdf8';
   return (
     <div
       className="absolute will-change-transform"

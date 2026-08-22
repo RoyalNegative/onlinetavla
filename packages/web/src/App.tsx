@@ -26,7 +26,7 @@ export function App() {
     <>
       {roomId ? <Room roomId={roomId} /> : path === '/pratik' ? <Practice /> : <Home />}
       {invite && (
-        <div className="fixed left-1/2 top-4 z-50 w-[min(92vw,360px)] -translate-x-1/2 animate-fade-up rounded-2xl border border-amber-glow/40 bg-ink-700 p-4 shadow-2xl">
+        <div className="fixed left-1/2 top-4 z-50 w-[min(92vw,360px)] -translate-x-1/2 animate-fade-up rounded-2xl border border-accent/40 bg-ink-700 p-4 shadow-2xl">
           <p className="text-sm">
             🎮 <b>{invite.fromName}</b> seni{' '}
             {{ dama: 'dama', amiral: 'amiral battı', mangala: 'mangala', dortlu: "4'ü bağla" }[invite.gameId] ?? 'tavla'} oyununa çağırdı.
@@ -75,7 +75,7 @@ function Toast({ text, onDone }: { text: string; onDone: () => void }) {
     return () => clearTimeout(t);
   }, [onDone]);
   return (
-    <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 animate-fade-up rounded-xl bg-ink-700 px-4 py-2.5 text-sm shadow-xl ring-1 ring-white/10">
+    <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 animate-fade-up rounded-xl bg-ink-700 px-4 py-2.5 text-sm shadow-xl ring-1 ring-cream/10">
       {text}
     </div>
   );

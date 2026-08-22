@@ -2,9 +2,10 @@
 // friend-request notification bell.
 
 import { useEffect, useState } from 'react';
+import { Bell, Trophy } from 'lucide-react';
 import { firebaseConfigured, signInWithGoogle, signOut } from '../lib/firebase';
 import { useStore } from '../store';
-import { AccountModal } from './AccountModal';
+import { AccountModal } from './AccountModalLazy';
 
 export function Auth() {
   const authUser = useStore((s) => s.authUser);
@@ -45,37 +46,41 @@ export function Auth() {
     <div className="flex items-center gap-2">
       {authUser && reqCount > 0 && (
         <button
-          className="relative rounded-xl bg-white/5 px-2.5 py-2 text-sm hover:bg-white/10"
+          className="relative grid h-9 w-9 place-items-center rounded-[10px] border border-transparent text-cream/70 transition-all hover:border-cream/12 hover:bg-cream/[0.06] hover:text-cream"
           title={`${reqCount} arkadaşlık isteği`}
           onClick={() => setModal('friends')}
         >
-          🔔
-          <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+          <Bell size={17} />
+          <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-ink-900">
             {reqCount}
           </span>
         </button>
       )}
-      <button className="btn-ghost px-2.5 py-2 text-sm" onClick={() => setModal('leaderboard')}>
-        🏆<span className="ml-1 hidden sm:inline">Sıralama</span>
+      <button className="btn-quiet gap-1.5" onClick={() => setModal('leaderboard')}>
+        <Trophy size={16} />
+        <span className="hidden sm:inline">Sıralama</span>
       </button>
 
       {firebaseConfigured &&
         (authUser ? (
           <div className="relative">
-            <button className="flex items-center gap-2 rounded-xl bg-white/5 px-2 py-1.5 hover:bg-white/10" onClick={() => setMenu((m) => !m)}>
+            <button
+              className="flex items-center gap-2 rounded-[10px] border border-cream/10 px-2 py-1.5 transition-colors hover:border-cream/20 hover:bg-cream/[0.05]"
+              onClick={() => setMenu((m) => !m)}
+            >
               {authUser.avatar ? (
                 <img src={authUser.avatar} alt="" className="h-7 w-7 rounded-full" />
               ) : (
-                <span className="grid h-7 w-7 place-items-center rounded-full bg-amber-glow text-sm font-bold text-ink-900">
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-accent text-sm font-bold text-ink-900">
                   {authUser.name.slice(0, 1).toUpperCase()}
                 </span>
               )}
               <span className="max-w-[90px] truncate text-sm">{authUser.name}</span>
             </button>
             {menu && (
-              <div className="absolute right-0 z-50 mt-1 w-40 overflow-hidden rounded-xl border border-white/10 bg-ink-700 shadow-xl">
+              <div className="absolute right-0 z-50 mt-2 w-40 overflow-hidden rounded-xl border border-cream/10 bg-ink-700 shadow-pop">
                 <button
-                  className="block w-full px-4 py-2.5 text-left text-sm hover:bg-white/5"
+                  className="block w-full px-4 py-2.5 text-left text-sm hover:bg-cream/5"
                   onClick={() => {
                     setMenu(false);
                     setModal('profile');
@@ -84,7 +89,7 @@ export function Auth() {
                   Profilim
                 </button>
                 <button
-                  className="block w-full px-4 py-2.5 text-left text-sm text-rose-300 hover:bg-white/5"
+                  className="block w-full px-4 py-2.5 text-left text-sm text-rose-300 hover:bg-cream/5"
                   onClick={() => {
                     setMenu(false);
                     void signOut();

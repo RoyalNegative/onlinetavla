@@ -4,6 +4,7 @@
 // unless they already requested you, which makes you friends instantly.
 
 import { useEffect, useState } from 'react';
+import { Check, UserPlus } from 'lucide-react';
 import { addFriendByUid, fetchFriends } from '../lib/api';
 import { useStore } from '../store';
 import type { PlayerInfo } from '../protocol';
@@ -32,30 +33,38 @@ export function AddFriendChip({ players, youSeat }: { players: PlayerInfo[]; you
 
   if (state === 'added') {
     return (
-      <div className="card flex items-center gap-2 px-4 py-2.5 text-sm text-emerald-400">
-        ✓ <b>{opponent.name}</b> artık arkadaşın — bir dahakine ana sayfadan tek dokunuşla çağır.
+      <div className="card flex items-start gap-2.5 px-4 py-3 text-[13px] leading-relaxed text-ok">
+        <Check size={15} className="mt-0.5 shrink-0" />
+        <span>
+          <b>{opponent.name}</b> artık arkadaşın — bir dahakine ana sayfadan tek dokunuşla çağır.
+        </span>
       </div>
     );
   }
 
   if (state === 'requested') {
     return (
-      <div className="card flex items-center gap-2 px-4 py-2.5 text-sm text-white/60">
-        ✓ İstek gönderildi — <b>{opponent.name}</b> kabul edince arkadaş olacaksınız.
+      <div className="card flex items-start gap-2.5 px-4 py-3 text-[13px] leading-relaxed text-cream/50">
+        <Check size={15} className="mt-0.5 shrink-0" />
+        <span>
+          İstek gönderildi — <b className="text-cream/75">{opponent.name}</b> kabul edince arkadaş olacaksınız.
+        </span>
       </div>
     );
   }
 
   return (
     <button
-      className="card flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm transition hover:bg-white/10 disabled:opacity-50"
+      className="card flex w-full items-center gap-2.5 px-4 py-3 text-left text-[13px] transition-colors hover:bg-cream/[0.06] disabled:opacity-50"
       disabled={state === 'busy'}
       onClick={() => {
         setState('busy');
         void addFriendByUid(oppUid!).then((r) => setState(r.friend ? 'added' : r.requested ? 'requested' : 'idle'));
       }}
     >
-      <span className="grid h-6 w-6 place-items-center rounded-full bg-amber-glow/15 text-amber-glow">+</span>
+      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent/15 text-accent">
+        <UserPlus size={13} />
+      </span>
       <span>
         {state === 'busy' ? 'Gönderiliyor…' : <>Arkadaşlık isteği gönder: <b>{opponent.name}</b></>}
       </span>

@@ -101,11 +101,11 @@ export function ChessBoard({ view, interactive, onAction }: Props) {
           return (
             <g key={i}>
               <rect x={x} y={y} width={CELL} height={CELL} fill={light ? LIGHT : DARK} />
-              {isLast && <rect x={x} y={y} width={CELL} height={CELL} fill="#f5b14c" opacity={0.34} />}
+              {isLast && <rect x={x} y={y} width={CELL} height={CELL} fill="#f2894f" opacity={0.34} />}
               {isCheck && <rect x={x} y={y} width={CELL} height={CELL} fill="#ef4444" opacity={0.42} />}
-              {isSel && <rect x={x + 2.5} y={y + 2.5} width={CELL - 5} height={CELL - 5} fill="none" stroke="#f5b14c" strokeWidth="5" />}
+              {isSel && <rect x={x + 2.5} y={y + 2.5} width={CELL - 5} height={CELL - 5} fill="none" stroke="#f2894f" strokeWidth="5" />}
               {tgt && !tgt.capture && (
-                <circle cx={x + CELL / 2} cy={y + CELL / 2} r="12" fill="#f5b14c" opacity="0.85">
+                <circle cx={x + CELL / 2} cy={y + CELL / 2} r="12" fill="#f2894f" opacity="0.85">
                   <animate attributeName="opacity" values="0.45;0.95;0.45" dur="1.1s" repeatCount="indefinite" />
                 </circle>
               )}
@@ -184,7 +184,7 @@ function PromoPicker({ white, onPick, onCancel }: { white: boolean; onPick: (p: 
           <button
             key={p}
             onClick={() => onPick(p)}
-            className="grid h-14 w-14 place-items-center rounded-xl bg-white/5 text-4xl leading-none hover:bg-amber-glow/20"
+            className="grid h-14 w-14 place-items-center rounded-xl bg-white/5 text-4xl leading-none hover:bg-accent/20"
             style={{ color: pieceFill(white), WebkitTextStroke: `1.5px ${pieceStroke(white)}` }}
           >
             {GLYPH[PROMO_CODE[p]]}

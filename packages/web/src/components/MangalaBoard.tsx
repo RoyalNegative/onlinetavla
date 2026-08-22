@@ -65,7 +65,7 @@ function Pit({
       disabled={!clickable}
       onClick={onClick}
       className={`relative aspect-square w-full rounded-full transition ${
-        clickable ? 'cursor-pointer ring-2 ring-amber-glow/60 hover:ring-amber-glow hover:brightness-110' : ''
+        clickable ? 'cursor-pointer ring-2 ring-accent/60 hover:ring-accent hover:brightness-110' : ''
       } ${flash ? 'animate-pulse ring-2 ring-sky-400/80' : ''} ${captured ? 'animate-pulse ring-2 ring-rose-400/80' : ''}`}
       style={{
         background: 'radial-gradient(circle at 50% 42%, #4a3020 0%, #33210f 55%, #241708 100%)',
@@ -84,18 +84,18 @@ function Treasury({ count, label, mine, flash }: { count: number; label: string;
   return (
     <div className="flex h-full flex-col items-center justify-center gap-1">
       <div
-        className={`relative h-full min-h-[120px] w-full rounded-[2rem] ${flash ? 'animate-pulse ring-2 ring-amber-glow/80' : ''}`}
+        className={`relative h-full min-h-[120px] w-full rounded-[2rem] ${flash ? 'animate-pulse ring-2 ring-accent/80' : ''}`}
         style={{
           background: 'radial-gradient(circle at 50% 30%, #4a3020 0%, #33210f 60%, #241708 100%)',
           boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.65), 0 1px 0 rgba(255,255,255,0.06)',
         }}
       >
         <Stones n={count} />
-        <span className="absolute bottom-1 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/60 px-2 text-sm font-extrabold text-amber-glow">
+        <span className="absolute bottom-1 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/60 px-2 text-sm font-extrabold text-accent">
           {count}
         </span>
       </div>
-      <span className={`text-[11px] font-semibold ${mine ? 'text-amber-glow/90' : 'text-white/45'}`}>{label}</span>
+      <span className={`text-[11px] font-semibold ${mine ? 'text-accent/90' : 'text-white/45'}`}>{label}</span>
     </div>
   );
 }
@@ -150,7 +150,7 @@ export function MangalaBoard({ view, onAction }: Props) {
         />
       </div>
       {last?.extraTurn && view.phase === 'playing' && (
-        <p className="mt-2 text-center text-xs font-semibold text-amber-glow/90">
+        <p className="mt-2 text-center text-xs font-semibold text-accent/90">
           ⭐ Son taş hazneye düştü — {last.seat === you && view.youAre !== null ? 'bir hamle daha senin!' : 'rakip bir kez daha oynuyor'}
         </p>
       )}

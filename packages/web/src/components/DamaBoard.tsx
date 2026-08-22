@@ -125,9 +125,9 @@ export function DamaBoard({ view, interactive, onAction }: Props) {
           return (
             <g key={i}>
               <rect x={x} y={y} width={CELL} height={CELL} fill={light ? '#e9dcc0' : '#9c5a32'} />
-              {isSel && <rect x={x + 2} y={y + 2} width={CELL - 4} height={CELL - 4} fill="none" stroke="#f5b14c" strokeWidth="4" />}
+              {isSel && <rect x={x + 2} y={y + 2} width={CELL - 4} height={CELL - 4} fill="none" stroke="#f2894f" strokeWidth="4" />}
               {isTarget && (
-                <circle cx={x + CELL / 2} cy={y + CELL / 2} r="13" fill={takes ? '#f87171' : '#f5b14c'}>
+                <circle cx={x + CELL / 2} cy={y + CELL / 2} r="13" fill={takes ? '#ff4d6d' : '#f2894f'}>
                   <animate attributeName="opacity" values="0.4;1;0.4" dur="1.1s" repeatCount="indefinite" />
                 </circle>
               )}
@@ -234,7 +234,7 @@ function MovePath({ points, animated }: { points: string; animated?: boolean }) 
   return (
     <>
       <polyline points={points} fill="none" stroke="#0c1118" strokeWidth={11} strokeOpacity={0.5} strokeLinejoin="round" strokeLinecap="round" />
-      <polyline points={points} fill="none" stroke="#f5b14c" strokeWidth={5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray="14 10">
+      <polyline points={points} fill="none" stroke="#f2894f" strokeWidth={5} strokeLinejoin="round" strokeLinecap="round" strokeDasharray="14 10">
         {animated && <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="0.6s" repeatCount="indefinite" />}
       </polyline>
     </>
@@ -251,7 +251,7 @@ function CapturedMark({ x, y, r }: { x: number; y: number; r: number }) {
         <line x1={x - a} y1={y - a} x2={x + a} y2={y + a} />
         <line x1={x - a} y1={y + a} x2={x + a} y2={y - a} />
       </g>
-      <g stroke="#f5b14c" strokeWidth={5} strokeLinecap="round">
+      <g stroke="#f2894f" strokeWidth={5} strokeLinecap="round">
         <line x1={x - a} y1={y - a} x2={x + a} y2={y + a} />
         <line x1={x - a} y1={y + a} x2={x + a} y2={y - a} />
       </g>
@@ -269,7 +269,7 @@ function SquareOutline({ i, screen, dashed }: { i: number; screen: (i: number) =
       height={CELL - 6}
       rx={6}
       fill="none"
-      stroke="#f5b14c"
+      stroke="#f2894f"
       strokeWidth={4}
       strokeDasharray={dashed ? '10 8' : undefined}
     />

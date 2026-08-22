@@ -103,7 +103,7 @@ function Lobby({ players, youSeat, roomId, onAction }: { players: PlayerInfo[]; 
 
       <div className="text-center">
         <p className="mb-2 text-sm text-white/60">
-          <b className={ready ? 'text-emerald-400' : 'text-amber-glow'}>{n}/10</b> oyuncu {!ready && `— en az ${5 - n} kişi daha`}
+          <b className={ready ? 'text-emerald-400' : 'text-accent'}>{n}/10</b> oyuncu {!ready && `— en az ${5 - n} kişi daha`}
         </p>
         {isHost ? (
           <button className="btn-primary w-full py-3 disabled:opacity-40" disabled={!ready} onClick={() => onAction({ type: 'start' })}>
@@ -145,7 +145,7 @@ function Tracks({ view }: { view: SHView }) {
             <span
               key={i}
               className="h-3 w-3 rounded-full"
-              style={{ background: i < view.electionTracker ? '#f5b14c' : 'rgba(255,255,255,0.12)' }}
+              style={{ background: i < view.electionTracker ? '#f2894f' : 'rgba(255,255,255,0.12)' }}
             />
           ))}
           <span className="text-white/30">3 başarısız seçim → üstteki kart kendiliğinden yürürlüğe girer</span>
@@ -222,7 +222,7 @@ function Table({
                 dead
                   ? 'bg-white/[0.03] opacity-45'
                   : clickable
-                    ? 'cursor-pointer bg-amber-glow/15 ring-2 ring-amber-glow/60 hover:bg-amber-glow/25'
+                    ? 'cursor-pointer bg-accent/15 ring-2 ring-accent/60 hover:bg-accent/25'
                     : 'bg-white/5'
               } ${seat === youSeat ? 'ring-1 ring-white/20' : ''}`}
             >
@@ -463,7 +463,7 @@ function PolicyCard({ policy, selected, onClick }: { policy: SHPolicy; selected?
       onClick={onClick}
       disabled={!onClick}
       className={`h-28 w-20 rounded-xl border-2 text-center transition ${onClick ? 'cursor-pointer hover:scale-105' : ''} ${
-        selected ? 'scale-105 ring-4 ring-amber-glow' : ''
+        selected ? 'scale-105 ring-4 ring-accent' : ''
       }`}
       style={{ background: lib ? '#12324f' : '#4f1a12', borderColor: lib ? LIB : FAS }}
     >

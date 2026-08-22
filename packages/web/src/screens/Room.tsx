@@ -19,6 +19,7 @@ import { MangalaBoard } from '../components/MangalaBoard';
 import { PeerCursors } from '../components/PeerCursors';
 import { PlayerPanel } from '../components/PlayerPanel';
 import { SecretHitlerBoard, SecretRolePanel } from '../components/SecretHitlerBoard';
+import { Check, Copy, LogOut, Share2, Users } from 'lucide-react';
 import { navigate } from '../router';
 import { useStore } from '../store';
 import { useGameEffects } from '../useGameEffects';
@@ -82,7 +83,7 @@ export function Room({ roomId }: { roomId: string }) {
   const boardRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="mx-auto flex min-h-full max-w-6xl flex-col">
+    <div className="flex min-h-full flex-col">
       <Header
         title={gameMeta?.title}
         right={
@@ -90,14 +91,18 @@ export function Room({ roomId }: { roomId: string }) {
             {/* A word reads cleaner than a bare status dot; only the reconnecting
                 state needs to grab attention. */}
             <span
-              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                connected ? 'bg-emerald-400/10 text-emerald-300/90' : 'animate-pulse bg-amber-glow/15 text-amber-glow'
+              className={`hidden items-center gap-2 text-[12px] font-medium sm:inline-flex ${
+                connected ? 'text-cream/40' : 'animate-pulse text-accent'
               }`}
             >
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ background: connected ? '#5bc08a' : '#e0603a' }}
+              />
               {connected ? 'Bağlı' : 'Bağlanıyor…'}
             </span>
-            <button className="btn-ghost px-3 py-2 text-sm" onClick={() => navigate('/')}>
-              Oyundan çık
+            <button className="btn-quiet" onClick={() => navigate('/')}>
+              <LogOut size={15} /> <span className="hidden sm:inline">Çık</span>
             </button>
           </div>
         }
@@ -106,12 +111,17 @@ export function Room({ roomId }: { roomId: string }) {
       {!hasName ? (
         <NameGate onSubmit={setNickname} />
       ) : !inThisRoom ? (
-        <div className="grid flex-1 place-items-center text-white/50">Odaya bağlanılıyor…</div>
+        <div className="grid flex-1 place-items-center">
+          <p className="flex items-center gap-2.5 text-sm text-cream/45">
+            <span className="h-1.5 w-1.5 animate-ping rounded-full bg-accent" />
+            Odaya bağlanılıyor…
+          </p>
+        </div>
       ) : (
-        <main className="grid flex-1 items-start gap-3 px-2 pb-6 sm:gap-4 sm:px-6 md:grid-cols-[1fr_300px] lg:grid-cols-[1fr_340px]">
+        <main className="mx-auto grid w-full max-w-6xl flex-1 items-start gap-3 px-2 pb-6 pt-4 sm:gap-5 sm:px-6 md:grid-cols-[1fr_300px] lg:grid-cols-[1fr_340px]">
           <div
             ref={boardRef}
-            className={`relative mx-auto w-full rounded-2xl transition-shadow ${yourTurn ? 'ring-2 ring-amber-glow/70 shadow-[0_0_30px_rgba(245,177,76,0.25)]' : ''}`}
+            className={`relative mx-auto w-full rounded-2xl transition-shadow ${yourTurn ? 'ring-2 ring-accent/70 shadow-[0_0_30px_rgba(242,137,79,0.25)]' : ''}`}
             // Cap the board so it fits the viewport on landscape phones.
             style={{
               maxWidth: isAmiral
@@ -266,21 +276,25 @@ export function Room({ roomId }: { roomId: string }) {
 function NameGate({ onSubmit }: { onSubmit: (n: string) => void }) {
   const [name, setName] = useState('');
   return (
-    <div className="grid flex-1 place-items-center px-4">
-      <div className="card w-full max-w-sm space-y-3 p-6 text-center">
-        <div className="text-3xl">👋</div>
-        <p className="text-lg font-bold">Oyuna katıl</p>
-        <p className="text-sm text-white/50">Bir takma ad gir, hemen başlayalım.</p>
+    <div className="grid flex-1 place-items-center px-5">
+      <div className="w-full max-w-sm">
+        <span className="eyebrow">Seni bekliyorlar</span>
+        <p className="mt-3 font-display text-[34px] font-semibold leading-none tracking-[-0.025em] text-cream">
+          Oyuna katıl<span className="text-accent">.</span>
+        </p>
+        <p className="mt-3 text-[14px] leading-relaxed text-cream/50">
+          Bir takma ad yeter — üyelik gerekmez.
+        </p>
         <form
           onSubmit={(e) => {
             e.preventDefault();
             const v = name.trim();
             if (v) onSubmit(v);
           }}
-          className="space-y-3"
+          className="mt-6 space-y-2.5"
         >
-          <input autoFocus className="input text-center" value={name} onChange={(e) => setName(e.target.value)} placeholder="ör. Kaan" maxLength={20} />
-          <button type="submit" className="btn-primary w-full" disabled={!name.trim()}>
+          <input autoFocus className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="ör. Kaan" maxLength={20} />
+          <button type="submit" className="btn-primary w-full py-3.5" disabled={!name.trim()}>
             Katıl
           </button>
         </form>
@@ -317,20 +331,22 @@ function InvitePanel({ roomId }: { roomId: string }) {
   const { copied, copy } = useCopy(url);
 
   return (
-    <div className="card space-y-2 p-4">
-      <p className="text-sm font-semibold">Arkadaşını davet et</p>
+    <div className="card space-y-2.5 p-4">
+      <p className="eyebrow flex items-center gap-2">
+        <Users size={13} /> Arkadaşını davet et
+      </p>
       <div className="flex gap-2">
         <input readOnly value={url} className="input py-2 text-base sm:text-sm" onFocus={(e) => e.target.select()} />
-        <button className="btn-primary px-3" onClick={copy}>
-          {copied ? '✓' : 'Kopyala'}
+        <button className="btn-primary shrink-0 px-3" onClick={copy} title="Linki kopyala">
+          {copied ? <Check size={16} /> : <Copy size={16} />}
         </button>
         {canNativeShare && (
-          <button className="btn-ghost px-3" onClick={() => shareNative(url)} title="Paylaş">
-            ↗
+          <button className="btn-ghost shrink-0 px-3" onClick={() => shareNative(url)} title="Paylaş">
+            <Share2 size={16} />
           </button>
         )}
       </div>
-      <p className="text-xs text-white/40">Bu linki gönder; karşı taraf açınca oyun başlar.</p>
+      <p className="text-[12px] leading-relaxed text-cream/35">Bu linki gönder; karşı taraf açınca oyun başlar.</p>
     </div>
   );
 }
@@ -339,17 +355,36 @@ function WaitingOverlay({ roomId }: { roomId: string }) {
   const url = `${window.location.origin}/r/${roomId}`;
   const { copied, copy } = useCopy(url);
   return (
-    <div className="absolute inset-0 z-20 grid place-items-center rounded-2xl bg-black/55 backdrop-blur-sm">
-      <div className="card max-w-xs p-6 text-center">
-        <div className="mb-2 text-3xl">⏳</div>
-        <p className="font-semibold">Rakip bekleniyor…</p>
-        <p className="mt-1 text-xs text-white/50">Linki gönder, karşı taraf bağlanınca başlıyoruz.</p>
-        <button className="btn-primary mt-3 w-full" onClick={copy}>
-          {copied ? '✓ Kopyalandı' : 'Davet linkini kopyala'}
+    <div className="absolute inset-0 z-20 grid place-items-center rounded-2xl bg-ink-900/70 backdrop-blur-md">
+      <div className="card w-[min(88%,20rem)] p-6 text-center">
+        {/* Three pulsing dots read as "waiting" without an emoji clock. */}
+        <div className="mb-4 flex justify-center gap-1.5" aria-hidden>
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent"
+              style={{ animationDelay: `${i * 180}ms` }}
+            />
+          ))}
+        </div>
+        <p className="font-display text-[22px] font-semibold leading-none tracking-[-0.02em]">Rakip bekleniyor</p>
+        <p className="mt-2.5 text-[13px] leading-relaxed text-cream/45">
+          Linki gönder, karşı taraf bağlanınca başlıyoruz.
+        </p>
+        <button className="btn-primary mt-4 w-full py-3" onClick={copy}>
+          {copied ? (
+            <>
+              <Check size={16} /> Kopyalandı
+            </>
+          ) : (
+            <>
+              <Copy size={15} /> Davet linkini kopyala
+            </>
+          )}
         </button>
         {canNativeShare && (
           <button className="btn-ghost mt-2 w-full" onClick={() => shareNative(url)}>
-            ↗ Uygulamayla paylaş
+            <Share2 size={15} /> Uygulamayla paylaş
           </button>
         )}
       </div>

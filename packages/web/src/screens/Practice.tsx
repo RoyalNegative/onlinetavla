@@ -11,6 +11,8 @@ import { DamaBoard } from '../components/DamaBoard';
 import { DamaPanel } from '../components/DamaPanel';
 import { DortluBoard } from '../components/DortluBoard';
 import { GenericPanel } from '../components/GenericPanel';
+import { GameGlyph } from '../components/GameGlyph';
+import { GraduationCap, RotateCcw } from 'lucide-react';
 import { Header } from '../components/Header';
 import { MangalaBoard } from '../components/MangalaBoard';
 import { PlayerPanel } from '../components/PlayerPanel';
@@ -86,7 +88,7 @@ function PracticeGame({
   return (
     <main className="grid flex-1 items-start gap-3 px-2 pb-6 sm:gap-4 sm:px-6 md:grid-cols-[1fr_300px] lg:grid-cols-[1fr_340px]">
       <div
-        className={`relative mx-auto w-full rounded-2xl transition-shadow ${yourTurn ? 'ring-2 ring-amber-glow/70 shadow-[0_0_30px_rgba(245,177,76,0.25)]' : ''}`}
+        className={`relative mx-auto w-full rounded-2xl transition-shadow ${yourTurn ? 'ring-2 ring-accent/70 shadow-[0_0_30px_rgba(242,137,79,0.25)]' : ''}`}
         style={{
           maxWidth: isAmiral
             ? '900px'
@@ -113,17 +115,29 @@ function PracticeGame({
       </div>
 
       <aside className="flex min-h-0 flex-col gap-4">
-        <div className="rounded-2xl border border-amber-glow/30 bg-amber-glow/10 px-4 py-3 text-sm text-amber-glow/90">
-          🎓 Pratik modu — bota karşı oyna ve öğren. Oynayabileceğin yerler vurgulanır.
+        <div className="flex items-start gap-2.5 rounded-xl border border-accent/25 bg-accent/[0.07] px-4 py-3 text-[13px] leading-relaxed text-accent/90">
+          <GraduationCap size={16} className="mt-0.5 shrink-0" />
+          <span>Pratik modu — bota karşı oyna ve öğren. Oynayabileceğin yerler vurgulanır.</span>
         </div>
 
         <div className="card p-3">
-          <div className="mb-2 grid grid-cols-3 gap-2">
-            <Toggle active={game === 'tavla'} onClick={() => setGame('tavla')} label="🎲 Tavla" />
-            <Toggle active={game === 'dama'} onClick={() => setGame('dama')} label="⛀ Dama" />
-            <Toggle active={game === 'amiral'} onClick={() => setGame('amiral')} label="🚢 Amiral" />
-            <Toggle active={game === 'mangala'} onClick={() => setGame('mangala')} label="🪨 Mangala" />
-            <Toggle active={game === 'dortlu'} onClick={() => setGame('dortlu')} label="🔴 4'ü Bağla" />
+          <div className="mb-2 grid grid-cols-5 gap-1.5">
+            {PRACTICE_GAMES.map((g) => (
+              <button
+                key={g.id}
+                onClick={() => setGame(g.id)}
+                aria-pressed={game === g.id}
+                title={g.label}
+                className={`flex flex-col items-center gap-1.5 rounded-lg border px-1 py-2.5 transition-all duration-200 ${
+                  game === g.id
+                    ? 'border-accent/70 bg-accent/[0.12] text-accent'
+                    : 'border-cream/10 text-cream/50 hover:border-cream/25 hover:text-cream/85'
+                }`}
+              >
+                <GameGlyph id={g.id} size={22} tint="currentColor" />
+                <span className="w-full truncate text-center text-[10px] font-semibold leading-none">{g.short}</span>
+              </button>
+            ))}
           </div>
           {isAmiral && (
             <div className="mb-2 grid grid-cols-2 gap-2">
@@ -138,7 +152,7 @@ function PracticeGame({
             </div>
           )}
           <button className="btn-ghost w-full" onClick={restart}>
-            ↻ Yeniden başlat
+            <RotateCcw size={15} /> Yeniden başlat
           </button>
         </div>
 
@@ -193,9 +207,26 @@ function PracticeGame({
   );
 }
 
+// Which games have a local bot to practise against.
+const PRACTICE_GAMES: { id: GameId; label: string; short: string }[] = [
+  { id: 'tavla', label: 'Tavla', short: 'Tavla' },
+  { id: 'dama', label: 'Dama', short: 'Dama' },
+  { id: 'amiral', label: 'Amiral Battı', short: 'Amiral' },
+  { id: 'mangala', label: 'Mangala', short: 'Mangala' },
+  { id: 'dortlu', label: "4'ü Bağla", short: "4'ü" },
+];
+
 function Toggle({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
   return (
-    <button onClick={onClick} className={`rounded-xl px-2 py-2 font-bold transition ${active ? 'bg-amber-glow text-ink-900' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}>
+    <button
+      onClick={onClick}
+      aria-pressed={active}
+      className={`rounded-[10px] border px-2 py-2 text-[13px] font-semibold transition-all duration-200 ${
+        active
+          ? 'border-accent/70 bg-accent/[0.12] text-accent'
+          : 'border-cream/12 text-cream/60 hover:border-cream/25 hover:text-cream/85'
+      }`}
+    >
       {label}
     </button>
   );
@@ -240,10 +271,10 @@ function Rules({ gameId }: { gameId: GameId }) {
   return (
     <div className="card p-4">
       <p className="mb-2 font-semibold">Nasıl oynanır?</p>
-      <ul className="space-y-1.5 text-sm text-white/70">
+      <ul className="space-y-1.5 text-sm text-cream/70">
         {items.map((t, i) => (
           <li key={i} className="flex gap-2">
-            <span className="text-amber-glow">•</span>
+            <span className="text-accent">•</span>
             <span>{t}</span>
           </li>
         ))}

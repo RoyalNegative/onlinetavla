@@ -13,7 +13,7 @@ function discColor(seat: number): string {
   // seat 0 (white) = warm amber; seat 1 (black) = graphite, lightened so it
   // reads on the dark-blue board instead of sinking into it.
   return seat === 0
-    ? 'radial-gradient(circle at 35% 30%, #ffd98a, #f5b14c 55%, #b97a1e)'
+    ? 'radial-gradient(circle at 35% 30%, #ffd98a, #f2894f 55%, #b97a1e)'
     : 'radial-gradient(circle at 35% 30%, #9aa1ad, #565e6b 52%, #333a45)';
 }
 
@@ -79,7 +79,7 @@ export function DortluBoard({ view, onAction }: { view: DortluView; onAction: (a
                         // The winning four keep a steady amber glow so the line
                         // that ended the round is unmistakable.
                         boxShadow: inWin
-                          ? '0 0 0 3px rgba(245,177,76,0.95), 0 0 14px 4px rgba(245,177,76,0.6)'
+                          ? '0 0 0 3px rgba(242,137,79,0.95), 0 0 14px 4px rgba(242,137,79,0.6)'
                           : discRim(cell),
                         animation: inWin
                           ? 'dortlu-win 1s ease-in-out infinite'

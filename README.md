@@ -144,6 +144,17 @@ npm run typecheck # üç paketi de tsc ile denetler
 Oda yöneticisi, sohbet, yeniden bağlanma ve hesap katmanı **hiç değişmeden**
 yeni oyunla çalışır.
 
+Arayüz tarafında üç şey gerekir:
+
+1. `web/src/lib/games.ts` → `GAME_META`'ya başlık, alt başlık ve vurgu rengi
+   (`tint`). Bu üçlü hem ana ekran kataloğunda hem oda başlığında hem de
+   tahtanın arka plan ışığında kullanılır.
+2. `web/src/components/GameGlyph.tsx` → `MARKS` içine oyunun işareti. Emoji
+   kullanma: işaretler 24'lük ızgarada, 1.5 kalınlıkta tek çizgi ve tek dolu
+   öğe (oyunun kendi `tint`'i) kuralına uyar.
+3. `web/src/screens/Home.tsx` → `GAMES` dizisine `kind` (`duel` / `party`),
+   bir cümlelik `desc` ve `how` metni.
+
 ---
 
 MIT-benzeri kişisel proje. İyi oyunlar! 🎲
